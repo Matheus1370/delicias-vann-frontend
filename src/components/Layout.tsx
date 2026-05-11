@@ -11,6 +11,9 @@ import {
   Settings,
   Cake,
   ChevronDown,
+  Instagram,
+  MessageCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { useCartStore } from '../store/cart.store';
@@ -130,6 +133,7 @@ function Header() {
     { to: '/', label: 'início' },
     { to: '/cardapio', label: 'cardápio' },
     { to: '/montar', label: 'montar bolo' },
+    { to: '/duvidas', label: 'dúvidas' },
   ];
 
   const isActiveLink = (path: string) =>
@@ -613,11 +617,256 @@ function Header() {
   );
 }
 
+function Footer() {
+  const location = useLocation();
+  // Esconde o footer dentro do admin (interface operacional)
+  if (location.pathname.startsWith('/admin')) return null;
+
+  const colSections = [
+    {
+      titulo: 'navegação',
+      links: [
+        { to: '/', label: 'início' },
+        { to: '/cardapio', label: 'cardápio' },
+        { to: '/montar', label: 'montar bolo' },
+        { to: '/duvidas', label: 'dúvidas frequentes' },
+      ],
+    },
+    {
+      titulo: 'sua conta',
+      links: [
+        { to: '/pedidos', label: 'meus pedidos' },
+        { to: '/perfil', label: 'perfil' },
+        { to: '/assinaturas', label: 'assinatura mensal' },
+      ],
+    },
+    {
+      titulo: 'legal',
+      links: [
+        { to: '/termos', label: 'termos de uso' },
+        { to: '/privacidade', label: 'política de privacidade' },
+      ],
+    },
+  ];
+
+  return (
+    <footer
+      style={{
+        background: BRAND.marrom,
+        color: BRAND.bege,
+        padding: '64px 20px 32px',
+        marginTop: 80,
+      }}
+    >
+      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 40,
+            paddingBottom: 48,
+            borderBottom: `1px dashed ${BRAND.bege}33`,
+          }}
+        >
+          {/* Coluna 1: identidade */}
+          <div>
+            <div style={{ lineHeight: 0.85, marginBottom: 18 }}>
+              <span
+                className="font-display"
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  fontStyle: 'italic',
+                  color: BRAND.rosa,
+                  display: 'block',
+                }}
+              >
+                delícias
+              </span>
+              <span
+                className="font-display"
+                style={{
+                  fontSize: 28,
+                  fontWeight: 900,
+                  color: BRAND.bege,
+                  letterSpacing: '-0.04em',
+                  display: 'block',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    verticalAlign: 'super',
+                    marginRight: 3,
+                    fontWeight: 800,
+                    fontStyle: 'italic',
+                    color: BRAND.rosa,
+                  }}
+                >
+                  da
+                </span>
+                van
+              </span>
+            </div>
+            <p
+              className="font-body"
+              style={{
+                fontSize: 13,
+                lineHeight: 1.55,
+                color: `${BRAND.bege}99`,
+                maxWidth: 260,
+                marginBottom: 20,
+              }}
+            >
+              confeitaria de bairro feita à mão. bolo encomendado, doces de
+              festa e o famoso bolo do dia no balcão.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <a
+                href="https://wa.me/5511982813152"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: `${BRAND.bege}12`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: BRAND.bege,
+                  transition: 'all 0.2s',
+                }}
+              >
+                <MessageCircle size={16} />
+              </a>
+              <a
+                href="https://instagram.com/deliciasdavann"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: `${BRAND.bege}12`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: BRAND.bege,
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Instagram size={16} />
+              </a>
+              <Link
+                to="/duvidas"
+                aria-label="Dúvidas frequentes"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: `${BRAND.bege}12`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: BRAND.bege,
+                  transition: 'all 0.2s',
+                }}
+              >
+                <HelpCircle size={16} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Colunas de links */}
+          {colSections.map((sec) => (
+            <div key={sec.titulo}>
+              <div
+                style={{
+                  fontFamily: 'Space Grotesk, monospace',
+                  fontSize: 11,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: BRAND.rosa,
+                  marginBottom: 18,
+                }}
+              >
+                {sec.titulo}
+              </div>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                {sec.links.map((l) => (
+                  <li key={l.to}>
+                    <Link
+                      to={l.to}
+                      className="font-body"
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: `${BRAND.bege}cc`,
+                        textDecoration: 'none',
+                        transition: 'color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = BRAND.rosa;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = `${BRAND.bege}cc`;
+                      }}
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Rodapé fininho */}
+        <div
+          style={{
+            paddingTop: 24,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+            fontFamily: 'Quicksand, sans-serif',
+            fontSize: 12,
+            color: `${BRAND.bege}77`,
+          }}
+        >
+          <span>
+            © {new Date().getFullYear()} delícias da van · feito com carinho em
+            são paulo
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <NavStar size={8} className="text-brand-rosa" />
+            <span>cnpj em breve</span>
+          </span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen" style={{ background: BRAND.bege }}>
+    <div className="min-h-screen flex flex-col" style={{ background: BRAND.bege }}>
       <Header />
-      <main className="pt-[68px]">{children}</main>
+      <main className="pt-[68px] flex-1">{children}</main>
+      <Footer />
     </div>
   );
 }

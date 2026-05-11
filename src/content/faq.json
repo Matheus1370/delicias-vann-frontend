@@ -1,0 +1,168 @@
+{
+  "categorias": [
+    {
+      "id": "pedido",
+      "titulo": "como pedir",
+      "perguntas": [
+        {
+          "q": "como faço um pedido pelo site?",
+          "a": "Você pode pedir um bolo pronto pelo cardápio (entrega no mesmo dia, sujeito a estoque) ou montar o seu bolo do zero pela página \"montar bolo\". Aí é só seguir as etapas (tamanho, massa, recheio, cobertura, mensagem) e finalizar pelo checkout."
+        },
+        {
+          "q": "consigo pedir com quantos dias de antecedência?",
+          "a": "Bolo simples (redondo, uma camada de recheio) pede com 48h de antecedência. Bolos mais elaborados (andar, biscuit, escultura) precisam de mais tempo — veja a tabela de prazos abaixo. Quanto antes melhor, principalmente em datas concorridas (dia das mães, dia das crianças, fim de semana)."
+        },
+        {
+          "q": "como sei se a data que quero está disponível?",
+          "a": "Quando você escolhe a data no checkout, o sistema só mostra as datas com vaga de produção. Se não aparecer no calendário é porque a agenda fechou. Pra emergência de última hora, manda mensagem no WhatsApp — às vezes a gente encaixa."
+        },
+        {
+          "q": "posso pedir pelo WhatsApp em vez do site?",
+          "a": "Pode. O WhatsApp é (11) 98281-3152. Se você já configurou o bolo no site mas quer fechar pelo zap, tem botão \"continuar pelo WhatsApp\" que manda o resumo direto pra gente."
+        },
+        {
+          "q": "como mudo ou cancelo um pedido depois de fechado?",
+          "a": "Até 48h antes da data combinada, pode alterar ou cancelar com reembolso integral. Entre 48h e 24h, devolvemos 50% (já compramos insumos). Nas últimas 24h o pedido não é mais reembolsável — mas você pode trocar pra outra data se a gente conseguir encaixar."
+        }
+      ]
+    },
+    {
+      "id": "sabores",
+      "titulo": "sabores e personalização",
+      "perguntas": [
+        {
+          "q": "quais sabores de massa, recheio e cobertura vocês fazem?",
+          "a": "Massas: baunilha, chocolate, red velvet, cenoura, leite ninho. Recheios: brigadeiro, beijinho, ninho com nutella, maracujá, leite ninho com morango, chocolate belga, doce de leite. Coberturas: chantilly, ganache, pasta americana, buttercream. Você vê todas as opções dentro do configurador."
+        },
+        {
+          "q": "tem opção sem lactose, sem glúten ou sem açúcar?",
+          "a": "Temos versões sem glúten (massa de chocolate ou cenoura) e sem lactose (massa + recheio adaptados) — escolha no passo de massa. Sem açúcar é sob encomenda especial: fala com a gente no WhatsApp pra alinhar a receita."
+        },
+        {
+          "q": "vocês fazem bolo igual a uma foto que eu mandar?",
+          "a": "Sim. Você pode anexar até 5 imagens de referência dentro do configurador. Pra bolos muito elaborados, a gente conversa antes pelo WhatsApp pra alinhar o que é viável e quanto custa o trabalho extra de decoração."
+        },
+        {
+          "q": "qual o tamanho ideal pra X pessoas?",
+          "a": "Como regra: 100g de bolo por pessoa adulta, 80g por criança. Bolo de 1kg serve confortável ~10 adultos. 2kg ~20 pessoas, 3kg ~30. Festa corporativa ou com muita opção doce, considere +20% de folga. O configurador faz essa conversão pra você no primeiro passo."
+        },
+        {
+          "q": "posso pedir doces de festa junto com o bolo?",
+          "a": "Pode e a gente recomenda. Brigadeiros, beijinhos, casadinhos, copinhos — todos disponíveis dentro do configurador ou avulsos no cardápio. Sugestão: 8 a 10 docinhos por pessoa pra uma festa equilibrada."
+        }
+      ]
+    },
+    {
+      "id": "entrega",
+      "titulo": "entrega e retirada",
+      "perguntas": [
+        {
+          "q": "quais bairros vocês entregam?",
+          "a": "Entrega própria (motoboy nosso) numa lista de bairros próximos com taxa fixa. Pra fora da nossa área, despachamos por Uber Direct ou 99 Entregas — taxa calculada na hora pelo app. Bolos de andar e os mais delicados saem só pela nossa entrega ou retirada no balcão (não suportam moto)."
+        },
+        {
+          "q": "tem opção de retirar no balcão?",
+          "a": "Tem, sem custo. Endereço do balcão é informado no checkout junto com a janela de horário pra retirar. Bolo encomendado fica disponível na data combinada — sem precisar agendar horário fechado."
+        },
+        {
+          "q": "que horas o bolo chega?",
+          "a": "A gente entrega antes da hora da festa, com buffer mínimo de 1–2h dependendo da modalidade. No checkout, você informa a hora da festa e o sistema sugere a janela ideal de chegada do bolo (geralmente 2h antes pra dar tempo de montar a mesa)."
+        },
+        {
+          "q": "e se o bolo chegar danificado ou atrasado?",
+          "a": "Se foi a nossa entrega: a gente repara ou refaz, conforme o caso. Se foi Uber/99: documente com foto e chama a gente — acionamos o seguro da plataforma e, se a culpa for da entregadora, fazemos o ressarcimento."
+        }
+      ]
+    },
+    {
+      "id": "pagamento",
+      "titulo": "pagamento",
+      "perguntas": [
+        {
+          "q": "quais formas de pagamento vocês aceitam?",
+          "a": "PIX direto no checkout (gerado na hora) e cartão de crédito (via gateway seguro). No balcão também aceitamos dinheiro e maquininha."
+        },
+        {
+          "q": "tem desconto à vista ou no PIX?",
+          "a": "Sim — o PIX é a forma mais ágil e a gente repassa o desconto da maquininha como benefício de quem paga assim. O valor exato aparece destacado no resumo do checkout."
+        },
+        {
+          "q": "como funcionam os cupons de desconto?",
+          "a": "Cupons chegam por WhatsApp, e-mail ou parcerias (indicação de amiga, primeira compra, datas comemorativas). No checkout tem um campo \"cupom\" — cola o código e o sistema aplica."
+        }
+      ]
+    },
+    {
+      "id": "pos-pedido",
+      "titulo": "depois do pedido",
+      "perguntas": [
+        {
+          "q": "como acompanho meu pedido?",
+          "a": "Logo depois de finalizar você recebe link pra página de acompanhamento, com linha do tempo (recebido → produzindo → pronto → saiu pra entrega → entregue). A gente também manda foto do bolo finalizado antes de despachar."
+        },
+        {
+          "q": "como avalio o bolo depois?",
+          "a": "Um dia após a festa, você recebe link pra dar nota (1 a 5 estrelas) e comentar. Sua avaliação ajuda a Vann a melhorar e aparece pros próximos clientes — só com seu primeiro nome."
+        },
+        {
+          "q": "como sou notificado de promoção ou bolo do mês?",
+          "a": "Quem cria conta entra na lista do WhatsApp opt-in (não enchemos de mensagem — só novidade real). Também temos o Instagram @deliciasdavann pros bastidores."
+        },
+        {
+          "q": "posso pedir bolo todo mês (assinatura)?",
+          "a": "Sim. Em \"assinaturas\" você configura uma entrega recorrente (semanal, quinzenal, mensal). Bom pra empresa que faz aniversário de funcionário ou pra fim de semana em família. Cancela quando quiser."
+        }
+      ]
+    }
+  ],
+  "prazos": [
+    {
+      "tipo": "bolo simples",
+      "descricao": "redondo, 1 camada de recheio, cobertura básica",
+      "prazoHoras": 48,
+      "prazoLegivel": "48 horas"
+    },
+    {
+      "tipo": "bolo elaborado",
+      "descricao": "redondo, múltiplos recheios, decoração temática",
+      "prazoHoras": 72,
+      "prazoLegivel": "3 dias"
+    },
+    {
+      "tipo": "bolo de andar",
+      "descricao": "2 ou mais andares, estrutura interna, acabamento fino",
+      "prazoHoras": 120,
+      "prazoLegivel": "5 dias"
+    },
+    {
+      "tipo": "bolo de biscuit",
+      "descricao": "escultura/personagem em biscuit modelado",
+      "prazoHoras": 168,
+      "prazoLegivel": "7 dias"
+    }
+  ],
+  "entrega": {
+    "raioKm": 12,
+    "tiers": [
+      {
+        "nome": "próximo",
+        "raioMaxKm": 4,
+        "taxa": "R$ 12",
+        "bairros": ["Vila Madalena", "Pinheiros", "Perdizes", "Sumaré", "Pompeia"]
+      },
+      {
+        "nome": "intermediário",
+        "raioMaxKm": 8,
+        "taxa": "R$ 22",
+        "bairros": ["Itaim Bibi", "Jardins", "Bela Vista", "Vila Mariana", "Lapa", "Barra Funda"]
+      },
+      {
+        "nome": "extremo",
+        "raioMaxKm": 12,
+        "taxa": "R$ 35",
+        "bairros": ["Moema", "Vila Olímpia", "Brooklin", "Tatuapé", "Mooca", "Santana"]
+      }
+    ],
+    "fora": "Pra entregar além de 12km, despachamos pelo Uber Direct ou 99 Entregas — taxa calculada na hora pelo app, com seguro da plataforma."
+  }
+}
