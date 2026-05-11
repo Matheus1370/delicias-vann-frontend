@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users } from 'lucide-react';
 import { useProduct } from '../../hooks/useProducts';
-import { useCartStore } from '../../store/cart.store';
+import { useCartStore, type Ocasiao } from '../../store/cart.store';
 import { BRAND } from '../../styles/brand';
 import { RoundCake, Star11 } from '../../components/BrandElements';
 
@@ -24,6 +24,7 @@ const STEP_ORDER = ['tamanho', 'massa', 'recheio', 'cobertura'];
 
 /* ─── Step emoji/icon map ─── */
 const STEP_ICON: Record<string, string> = {
+  pessoas: '👥',
   tamanho: '📐',
   massa: '🍰',
   recheio: '🍫',
@@ -32,9 +33,40 @@ const STEP_ICON: Record<string, string> = {
   resumo: '✅',
 };
 
+/* ─── Ocasiões disponíveis com regras de porção ─── */
+const OCASIOES: { value: Ocasiao; label: string; gramasPorPessoa: number; emoji: string }[] = [
+  { value: 'infantil', label: 'aniversário infantil', gramasPorPessoa: 80, emoji: '🎈' },
+  { value: 'adulto', label: 'aniversário adulto', gramasPorPessoa: 100, emoji: '🎂' },
+  { value: 'casamento', label: 'casamento', gramasPorPessoa: 100, emoji: '💍' },
+  { value: 'corporativo', label: 'corporativo', gramasPorPessoa: 120, emoji: '🏢' },
+];
+
+/** Calcula faixa de kg recomendada com folga de 10% pra cima. */
+function calcularKgSugerido(numeroPessoas: number, ocasiao: Ocasiao): {
+  ideal: number;
+  min: number;
+  max: number;
+} {
+  const reg = OCASIOES.find((o) => o.value === ocasiao);
+  const gramas = reg ? reg.gramasPorPessoa : 100;
+  const kgBase = (numeroPessoas * gramas) / 1000;
+  const min = kgBase;
+  const max = kgBase * 1.1; // folga 10%
+  const ideal = (min + max) / 2;
+  return { ideal, min, max };
+}
+
+/** Extrai o peso em kg do label de uma opção (ex: "1kg", "1,5 kg", "2.5kg"). */
+function extrairKgDoLabel(label: string): number | null {
+  const m = label.match(/(\d+(?:[\.,]\d+)?)\s*kg/i);
+  if (!m) return null;
+  return parseFloat(m[1].replace(',', '.'));
+}
+
 export default function WizardPage() {
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
+  const setOcasiaoGlobal = useCartStore((s) => s.setOcasiao);
   const { data: produto, isLoading } = useProduct('bolo-personalizado');
 
   const [step, setStep] = useState(0);
@@ -42,6 +74,13 @@ export default function WizardPage() {
   const [personalizacao, setPersonalizacao] = useState('');
   const [showAdded, setShowAdded] = useState(false);
   const [refImages, setRefImages] = useState<{ file: File; preview: string }[]>([]);
+  const [numeroPessoas, setNumeroPessoas] = useState<number | ''>('');
+  const [ocasiao, setOcasiao] = useState<Ocasiao | null>(null);
+
+  const kgSugerido = useMemo(() => {
+    if (!numeroPessoas || !ocasiao || numeroPessoas <= 0) return null;
+    return calcularKgSugerido(numeroPessoas, ocasiao);
+  }, [numeroPessoas, ocasiao]);
 
   /* ─── Parse opcoesMontagem into ordered steps ─── */
   const steps = useMemo(() => {
@@ -68,7 +107,8 @@ export default function WizardPage() {
   }, [produto]);
 
   const allStepKeys = useMemo(() => {
-    const keys = steps.map((s) => s.key);
+    const keys: string[] = ['pessoas'];
+    keys.push(...steps.map((s) => s.key));
     keys.push('mensagem');
     keys.push('resumo');
     return keys;
@@ -77,10 +117,33 @@ export default function WizardPage() {
   const totalSteps = allStepKeys.length;
   const currentKey = allStepKeys[step] ?? 'resumo';
   const cur = steps.find((s) => s.key === currentKey);
+  const isPessoasStep = currentKey === 'pessoas';
   const isMessageStep = currentKey === 'mensagem';
   const isResumoStep = currentKey === 'resumo';
   const isLastStep = step === totalSteps - 1;
-  const canAdvance = isMessageStep || isResumoStep || (cur && sel[cur.key]);
+  const isTamanhoStep = currentKey === 'tamanho';
+  const pessoasPreenchido = !!numeroPessoas && !!ocasiao && Number(numeroPessoas) > 0;
+  const canAdvance =
+    isMessageStep ||
+    isResumoStep ||
+    (isPessoasStep && pessoasPreenchido) ||
+    (cur && sel[cur.key]);
+
+  /** No passo de tamanho, encontra a opção sugerida com base no kg ideal. */
+  const sugestaoTamanhoLabel = useMemo(() => {
+    if (!isTamanhoStep || !kgSugerido || !cur) return null;
+    let melhor: { label: string; diff: number } | null = null;
+    for (const opt of cur.opcoes) {
+      const kg = extrairKgDoLabel(opt.label);
+      if (kg == null) continue;
+      // Preferimos opção cujo kg cubra a sugestão ideal (>= ideal)
+      const diff = kg >= kgSugerido.ideal ? kg - kgSugerido.ideal : (kgSugerido.ideal - kg) + 1000;
+      if (!melhor || diff < melhor.diff) {
+        melhor = { label: opt.label, diff };
+      }
+    }
+    return melhor?.label ?? null;
+  }, [isTamanhoStep, kgSugerido, cur]);
 
   /* ─── Pricing ─── */
   const precoTotal = useMemo(() => {
@@ -112,6 +175,12 @@ export default function WizardPage() {
     } else if (isMessageStep) {
       // mensagem é sempre opcional, pode avançar
       setStep((s) => s + 1);
+    } else if (isPessoasStep) {
+      if (!pessoasPreenchido) {
+        toast.error('Conta pra gente pra quantas pessoas é');
+        return;
+      }
+      setStep((s) => s + 1);
     } else if (canAdvance) {
       setStep((s) => s + 1);
     } else {
@@ -129,6 +198,7 @@ export default function WizardPage() {
       ? `${produto.nome} (${parts.join(' · ')})`
       : produto.nome;
 
+    const pessoasNum = typeof numeroPessoas === 'number' ? numeroPessoas : undefined;
     addItem({
       produtoId: produto.id,
       nome,
@@ -138,7 +208,11 @@ export default function WizardPage() {
       imagemUrl: produto.imagemUrl,
       opcoesEscolhidas: sel,
       personalizacao: personalizacao || undefined,
+      numeroPessoas: pessoasNum,
+      ocasiao: ocasiao ?? undefined,
     });
+    // Persiste no carrinho global pra propagar ao backend no checkout
+    setOcasiaoGlobal(pessoasNum ?? null, ocasiao);
     toast.success('Bolo adicionado ao carrinho!');
     setShowAdded(true);
   };
@@ -238,12 +312,164 @@ export default function WizardPage() {
                       <>tudo <span style={{ color: BRAND.rosa }}>certo</span>?</>
                     ) : isMessageStep ? (
                       <><span style={{ color: BRAND.rosa }}>mensagem</span> & referências</>
+                    ) : isPessoasStep ? (
+                      <>pra <span style={{ color: BRAND.rosa }}>quantas pessoas</span>?</>
                     ) : (
                       <>escolha o <span style={{ color: BRAND.rosa }}>{currentKey}</span></>
                     )}
                   </h2>
 
-                  {isResumoStep ? (
+                  {isPessoasStep ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                      <p style={{ fontSize: 15, color: BRAND.marrom + 'aa', lineHeight: 1.55, margin: 0 }}>
+                        A gente calcula o tamanho ideal pra você não comprar a menos.
+                        Aceita ajuste no próximo passo.
+                      </p>
+
+                      {/* Input de número de pessoas */}
+                      <div>
+                        <div className="font-mono" style={{ fontSize: 11, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                          número de pessoas
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <button
+                            type="button"
+                            onClick={() => setNumeroPessoas((p) => Math.max(1, (Number(p) || 1) - 5))}
+                            disabled={!numeroPessoas || Number(numeroPessoas) <= 1}
+                            style={{
+                              width: 44, height: 44, borderRadius: 999,
+                              border: `2px solid ${BRAND.begeEsc}`, background: BRAND.branco,
+                              color: BRAND.marrom, fontSize: 20, fontWeight: 700, cursor: 'pointer',
+                              opacity: !numeroPessoas || Number(numeroPessoas) <= 1 ? 0.3 : 1,
+                            }}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={500}
+                            value={numeroPessoas}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setNumeroPessoas(v === '' ? '' : Math.max(1, Math.min(500, parseInt(v, 10) || 0)));
+                            }}
+                            placeholder="ex: 30"
+                            style={{
+                              flex: 1, maxWidth: 220, padding: '12px 18px', borderRadius: 16,
+                              border: `2px solid ${numeroPessoas ? BRAND.rosa : BRAND.begeEsc}`,
+                              background: BRAND.branco, fontFamily: 'Fraunces, serif',
+                              fontSize: 36, fontWeight: 800, color: BRAND.marrom, textAlign: 'center',
+                              outline: 'none', transition: 'border-color 0.3s',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setNumeroPessoas((p) => Math.min(500, (Number(p) || 0) + 5))}
+                            style={{
+                              width: 44, height: 44, borderRadius: 999,
+                              border: `2px solid ${BRAND.begeEsc}`, background: BRAND.branco,
+                              color: BRAND.marrom, fontSize: 20, fontWeight: 700, cursor: 'pointer',
+                            }}
+                          >
+                            +
+                          </button>
+                          <span className="font-mono" style={{ fontSize: 11, color: BRAND.marrom + '88', letterSpacing: '0.06em' }}>
+                            pessoas
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Seleção de ocasião */}
+                      <div>
+                        <div className="font-mono" style={{ fontSize: 11, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                          ocasião
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+                          {OCASIOES.map((oc, i) => {
+                            const selected = ocasiao === oc.value;
+                            return (
+                              <motion.button
+                                key={oc.value}
+                                type="button"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                onClick={() => setOcasiao(oc.value)}
+                                whileHover={{ y: -3 }}
+                                whileTap={{ scale: 0.97 }}
+                                style={{
+                                  padding: 16, borderRadius: 18, textAlign: 'left',
+                                  border: `2px solid ${selected ? BRAND.rosa : BRAND.begeEsc}`,
+                                  background: selected ? BRAND.rosa : BRAND.branco,
+                                  color: selected ? BRAND.bege : BRAND.marrom,
+                                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <span style={{ fontSize: 22 }}>{oc.emoji}</span>
+                                <div>
+                                  <div className="font-display" style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.1 }}>
+                                    {oc.label}
+                                  </div>
+                                  <div className="font-mono" style={{ fontSize: 10, opacity: 0.7, marginTop: 2, letterSpacing: '0.04em' }}>
+                                    {oc.gramasPorPessoa}g/pessoa
+                                  </div>
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Preview do kg sugerido */}
+                      <AnimatePresence>
+                        {kgSugerido && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 8, height: 0 }}
+                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                            exit={{ opacity: 0, y: -8, height: 0 }}
+                            style={{
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: 24, borderRadius: 20,
+                                background: `linear-gradient(135deg, ${BRAND.rosa}14, ${BRAND.roxo}10)`,
+                                border: `1.5px dashed ${BRAND.rosa}55`,
+                                display: 'flex', alignItems: 'center', gap: 20,
+                              }}
+                            >
+                              <div style={{
+                                width: 56, height: 56, borderRadius: '50%',
+                                background: BRAND.rosa, color: BRAND.bege,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0,
+                              }}>
+                                <Users size={24} />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div className="font-mono" style={{ fontSize: 10, color: BRAND.marrom + 'aa', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+                                  sugestão da Vann
+                                </div>
+                                <div className="font-display" style={{ fontSize: 22, fontWeight: 800, color: BRAND.marrom, lineHeight: 1.1 }}>
+                                  bolo de{' '}
+                                  <span style={{ color: BRAND.rosa }}>
+                                    {kgSugerido.min.toFixed(1).replace('.', ',')} a {kgSugerido.max.toFixed(1).replace('.', ',')} kg
+                                  </span>
+                                </div>
+                                <div className="font-body" style={{ fontSize: 12, color: BRAND.marrom + '88', marginTop: 4 }}>
+                                  inclui 10% de folga · você pode ajustar no próximo passo
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : isResumoStep ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       <p style={{ fontSize: 15, color: BRAND.marrom + 'aa', lineHeight: 1.5, margin: 0 }}>
                         Confira as escolhas do seu bolo antes de adicionar ao carrinho.
@@ -254,6 +480,27 @@ export default function WizardPage() {
                         background: BRAND.branco, borderRadius: 20, padding: 24,
                         border: `1px solid ${BRAND.begeEsc}`,
                       }}>
+                        {numeroPessoas && ocasiao && (
+                          <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '14px 0',
+                            borderBottom: `1px dashed ${BRAND.begeEsc}`,
+                          }}>
+                            <div>
+                              <span className="font-mono" style={{ fontSize: 10, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                                👥 pessoas & ocasião
+                              </span>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span className="font-display" style={{ fontWeight: 700, fontSize: 16, color: BRAND.marrom }}>
+                                {numeroPessoas} pessoas
+                              </span>
+                              <span className="font-mono" style={{ fontSize: 11, color: BRAND.marrom + '88', marginLeft: 8 }}>
+                                {OCASIOES.find((o) => o.value === ocasiao)?.label}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         {steps.map((st) => {
                           const chosen = sel[st.key];
                           const opt = st.opcoes.find((o) => o.label === chosen);
@@ -452,64 +699,103 @@ export default function WizardPage() {
                       </div>
                     </div>
                   ) : cur ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-                      {cur.opcoes.map((opt, i) => {
-                        const selected = sel[cur.key] === opt.label;
-                        const extra = Number(opt.precoExtra);
-                        return (
-                          <motion.button
-                            key={opt.id}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.06 }}
-                            onClick={() => setSel((s) => ({ ...s, [cur.key]: opt.label }))}
-                            whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(66,39,22,0.1)' }}
-                            whileTap={{ scale: 0.97 }}
-                            style={{
-                              padding: 24, borderRadius: 20, textAlign: 'left',
-                              border: `2.5px solid ${selected ? BRAND.rosa : BRAND.begeEsc}`,
-                              background: selected ? BRAND.rosa : BRAND.branco,
-                              color: selected ? BRAND.bege : BRAND.marrom,
-                              cursor: 'pointer', position: 'relative',
-                              transition: 'border-color 0.2s, background 0.2s, color 0.2s',
-                            }}
-                          >
-                            <div className="font-display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                              {opt.label}
-                            </div>
-                            {opt.descricao && (
-                              <div style={{ fontSize: 13, opacity: selected ? 0.85 : 0.6, marginTop: 6, lineHeight: 1.3 }}>
-                                {opt.descricao}
+                    <>
+                      {/* Banner de sugestão no passo de tamanho */}
+                      {isTamanhoStep && kgSugerido && sugestaoTamanhoLabel && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{
+                            marginBottom: 16, padding: '14px 18px', borderRadius: 14,
+                            background: `${BRAND.rosa}10`,
+                            border: `1.5px dashed ${BRAND.rosa}55`,
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            fontSize: 13, color: BRAND.marrom,
+                          }}
+                        >
+                          <Sparkles size={16} style={{ color: BRAND.rosa, flexShrink: 0 }} />
+                          <span>
+                            Pra <strong>{numeroPessoas} pessoas</strong>, recomendamos{' '}
+                            <strong style={{ color: BRAND.rosa }}>{sugestaoTamanhoLabel}</strong>
+                            {' '}— já marcado como sugestão.
+                          </span>
+                        </motion.div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                        {cur.opcoes.map((opt, i) => {
+                          const selected = sel[cur.key] === opt.label;
+                          const extra = Number(opt.precoExtra);
+                          const sugerido = isTamanhoStep && opt.label === sugestaoTamanhoLabel;
+                          return (
+                            <motion.button
+                              key={opt.id}
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.06 }}
+                              onClick={() => setSel((s) => ({ ...s, [cur.key]: opt.label }))}
+                              whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(66,39,22,0.1)' }}
+                              whileTap={{ scale: 0.97 }}
+                              style={{
+                                padding: 24, borderRadius: 20, textAlign: 'left',
+                                border: `2.5px solid ${selected ? BRAND.rosa : sugerido ? BRAND.rosa + '88' : BRAND.begeEsc}`,
+                                background: selected ? BRAND.rosa : BRAND.branco,
+                                color: selected ? BRAND.bege : BRAND.marrom,
+                                cursor: 'pointer', position: 'relative',
+                                transition: 'border-color 0.2s, background 0.2s, color 0.2s',
+                              }}
+                            >
+                              {sugerido && !selected && (
+                                <div
+                                  className="font-mono"
+                                  style={{
+                                    position: 'absolute', top: -10, left: 16,
+                                    padding: '2px 8px', borderRadius: 999,
+                                    background: BRAND.rosa, color: BRAND.bege,
+                                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                  }}
+                                >
+                                  ✦ sugerido
+                                </div>
+                              )}
+                              <div className="font-display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                                {opt.label}
                               </div>
-                            )}
-                            {extra > 0 && (
-                              <div className="font-mono" style={{
-                                position: 'absolute', top: 16, right: 16,
-                                fontSize: 12, fontWeight: 700,
-                                padding: '3px 10px', borderRadius: 999,
-                                background: selected ? BRAND.bege + '33' : BRAND.rosa + '15',
-                                color: selected ? BRAND.bege : BRAND.rosa,
-                              }}>
-                                +R${extra}
-                              </div>
-                            )}
-                            {selected && (
-                              <motion.div
-                                layoutId="wizardCheck"
-                                style={{
-                                  position: 'absolute', bottom: 14, right: 14,
-                                  width: 28, height: 28, borderRadius: 14,
-                                  background: BRAND.bege, color: BRAND.rosa,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}
-                              >
-                                <Check size={16} strokeWidth={3} />
-                              </motion.div>
-                            )}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+                              {opt.descricao && (
+                                <div style={{ fontSize: 13, opacity: selected ? 0.85 : 0.6, marginTop: 6, lineHeight: 1.3 }}>
+                                  {opt.descricao}
+                                </div>
+                              )}
+                              {extra > 0 && (
+                                <div className="font-mono" style={{
+                                  position: 'absolute', top: 16, right: 16,
+                                  fontSize: 12, fontWeight: 700,
+                                  padding: '3px 10px', borderRadius: 999,
+                                  background: selected ? BRAND.bege + '33' : BRAND.rosa + '15',
+                                  color: selected ? BRAND.bege : BRAND.rosa,
+                                }}>
+                                  +R${extra}
+                                </div>
+                              )}
+                              {selected && (
+                                <motion.div
+                                  layoutId="wizardCheck"
+                                  style={{
+                                    position: 'absolute', bottom: 14, right: 14,
+                                    width: 28, height: 28, borderRadius: 14,
+                                    background: BRAND.bege, color: BRAND.rosa,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}
+                                >
+                                  <Check size={16} strokeWidth={3} />
+                                </motion.div>
+                              )}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : null}
                 </motion.div>
               </AnimatePresence>
@@ -607,6 +893,25 @@ export default function WizardPage() {
 
                 {/* Selections */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {numeroPessoas && ocasiao && (
+                    <div
+                      style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '10px 0',
+                        borderBottom: `1px dashed ${BRAND.bege}18`,
+                      }}
+                    >
+                      <span className="font-mono" style={{ fontSize: 10, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        👥 pessoas
+                      </span>
+                      <span className="font-display" style={{ fontWeight: 600, fontSize: 14 }}>
+                        {numeroPessoas}
+                        <span style={{ opacity: 0.5, fontSize: 11, marginLeft: 4 }}>
+                          · {OCASIOES.find((o) => o.value === ocasiao)?.label}
+                        </span>
+                      </span>
+                    </div>
+                  )}
                   {steps.map((st) => {
                     const chosen = sel[st.key];
                     const opt = st.opcoes.find((o) => o.label === chosen);

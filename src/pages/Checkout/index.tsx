@@ -25,6 +25,8 @@ export default function Checkout() {
   const addItem = useCartStore((s) => s.addItem);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQty = useCartStore((s) => s.updateQty);
+  const numeroPessoas = useCartStore((s) => s.numeroPessoas);
+  const ocasiao = useCartStore((s) => s.ocasiao);
 
   const { data: me } = useMe();
   const { data: upsell = [] } = useUpsellItems();
@@ -64,6 +66,12 @@ export default function Checkout() {
     validarCupom({ codigo: cupom, subtotal: totalValor });
   };
 
+  // Pega pessoas/ocasiao do primeiro item que tem (wizard preenche por bolo)
+  // ou do estado global do carrinho como fallback.
+  const itemComPessoas = items.find((i) => i.numeroPessoas && i.ocasiao);
+  const pedidoNumeroPessoas = itemComPessoas?.numeroPessoas ?? numeroPessoas ?? undefined;
+  const pedidoOcasiao = itemComPessoas?.ocasiao ?? ocasiao ?? undefined;
+
   const handleConfirm = () => {
     criar(
       {
@@ -77,6 +85,8 @@ export default function Checkout() {
         dataAgendamento,
         observacoes: observacoes || undefined,
         cupomCodigo: cupomData?.cupom?.codigo,
+        numeroPessoas: pedidoNumeroPessoas,
+        ocasiao: pedidoOcasiao,
       },
       {
         onSuccess: (pedido) => {

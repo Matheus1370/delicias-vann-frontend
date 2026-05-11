@@ -65,6 +65,34 @@ export default function ProductionSheet() {
           </div>
         </div>
 
+        {/* Festa (pessoas + ocasião) — só aparece se preenchido */}
+        {(pedido.numeroPessoas || pedido.ocasiao) && (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: 16,
+              borderRadius: 16,
+              background: `${BRAND.rosa}10`,
+              border: `1.5px dashed ${BRAND.rosa}55`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}
+          >
+            <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: BRAND.rosa }}>
+              Festa
+            </div>
+            <div style={{ fontSize: 14, color: BRAND.marrom, fontWeight: 700 }}>
+              {pedido.numeroPessoas ? `${pedido.numeroPessoas} pessoas` : '—'}
+              {pedido.ocasiao && (
+                <span style={{ fontWeight: 500, color: `${BRAND.marrom}aa`, marginLeft: 8 }}>
+                  · {pedido.ocasiao}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Client / Delivery info */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
           <div

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type Ocasiao = 'adulto' | 'infantil' | 'casamento' | 'corporativo';
+
 export interface CartItem {
   produtoId: string;
   nome: string;
@@ -10,6 +12,8 @@ export interface CartItem {
   imagemUrl?: string;
   opcoesEscolhidas?: Record<string, string>;
   personalizacao?: string;
+  numeroPessoas?: number;
+  ocasiao?: Ocasiao;
 }
 
 interface CartState {
@@ -17,11 +21,14 @@ interface CartState {
   slotId: string | null;
   dataAgendamento: string | null;
   modalidadeEntrega: string | null;
+  numeroPessoas: number | null;
+  ocasiao: Ocasiao | null;
   addItem: (item: CartItem) => void;
   removeItem: (produtoId: string) => void;
   updateQty: (produtoId: string, qty: number) => void;
   setSlot: (slotId: string, dataAgendamento: string) => void;
   setModalidade: (modalidade: string) => void;
+  setOcasiao: (numeroPessoas: number | null, ocasiao: Ocasiao | null) => void;
   clear: () => void;
   totalPontos: () => number;
   totalValor: () => number;
@@ -34,6 +41,8 @@ export const useCartStore = create<CartState>()(
       slotId: null,
       dataAgendamento: null,
       modalidadeEntrega: null,
+      numeroPessoas: null,
+      ocasiao: null,
 
       addItem: (item) =>
         set((s) => {
@@ -62,8 +71,16 @@ export const useCartStore = create<CartState>()(
 
       setSlot: (slotId, dataAgendamento) => set({ slotId, dataAgendamento }),
       setModalidade: (modalidade) => set({ modalidadeEntrega: modalidade }),
+      setOcasiao: (numeroPessoas, ocasiao) => set({ numeroPessoas, ocasiao }),
       clear: () =>
-        set({ items: [], slotId: null, dataAgendamento: null, modalidadeEntrega: null }),
+        set({
+          items: [],
+          slotId: null,
+          dataAgendamento: null,
+          modalidadeEntrega: null,
+          numeroPessoas: null,
+          ocasiao: null,
+        }),
 
       totalPontos: () =>
         get().items.reduce((acc, i) => acc + i.pontosEsforco * i.quantidade, 0),
