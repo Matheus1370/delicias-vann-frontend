@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Phone } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { MessageCircle, Phone, Camera, X as XIcon, ImagePlus } from 'lucide-react';
 import {
   useAdminOrders,
   useUpdateOrderStatus,
   useRascunhosWhatsApp,
+  useAdicionarFotoPronto,
 } from '../../../hooks/useOrders';
 import { BRAND } from '../../../styles/brand';
 import { Star11 } from '../../../components/BrandElements';
 import { gerarLinkWhatsApp } from '../../../utils/whatsapp';
+import { arquivoParaDataURL } from '../../../utils/imageResize';
 
 const STATUS_CONFIG = {
   AGUARDANDO_PAGAMENTO: { label: 'Aguardando', bg: BRAND.begeEsc, text: BRAND.marrom },
@@ -38,11 +41,47 @@ const FILTER_TABS = [
 export default function AdminOrders() {
   const [filter, setFilter] = useState<string>('');
   const [view, setView] = useState<'pedidos' | 'rascunhos'>('pedidos');
+  const [fotoModalPedido, setFotoModalPedido] = useState<any | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [fotoLegenda, setFotoLegenda] = useState('');
+  const [processandoArquivo, setProcessandoArquivo] = useState(false);
+
   const { data, isLoading } = useAdminOrders({ status: filter || undefined });
   const { mutate: updateStatus } = useUpdateOrderStatus();
   const { data: rascunhos = [], isLoading: rascunhosLoading } = useRascunhosWhatsApp();
+  const { mutateAsync: enviarFoto, isPending: enviandoFoto } = useAdicionarFotoPronto();
 
   const pedidos = data?.pedidos ?? [];
+
+  const handleArquivoSelecionado = async (file: File) => {
+    setProcessandoArquivo(true);
+    try {
+      const dataUrl = await arquivoParaDataURL(file);
+      setFotoPreview(dataUrl);
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Não foi possível ler a imagem');
+    } finally {
+      setProcessandoArquivo(false);
+    }
+  };
+
+  const enviarFotoPronto = async () => {
+    if (!fotoModalPedido || !fotoPreview) return;
+    await enviarFoto({
+      id: fotoModalPedido.id,
+      url: fotoPreview,
+      legenda: fotoLegenda || undefined,
+    });
+    setFotoModalPedido(null);
+    setFotoPreview(null);
+    setFotoLegenda('');
+  };
+
+  const fecharFotoModal = () => {
+    setFotoModalPedido(null);
+    setFotoPreview(null);
+    setFotoLegenda('');
+  };
 
   return (
     <div className="min-h-screen font-body" style={{ background: BRAND.bege }}>
@@ -386,6 +425,33 @@ export default function AdminOrders() {
                       Ficha
                     </a>
 
+                    {/* Foto pronto button (quando status=PRONTO) */}
+                    {pedido.status === 'PRONTO' && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setFotoModalPedido(pedido)}
+                        style={{
+                          padding: '7px 12px',
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: BRAND.branco,
+                          background: BRAND.marrom,
+                          border: 'none',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                        title="Enviar foto do bolo pronto pro cliente"
+                      >
+                        <Camera size={13} />
+                        foto
+                      </motion.button>
+                    )}
+
                     {/* Advance button */}
                     {nextStatus && (
                       <motion.button
@@ -420,6 +486,240 @@ export default function AdminOrders() {
           </div>
         ))}
       </div>
+
+      {/* Foto pronto modal */}
+      <AnimatePresence>
+        {fotoModalPedido && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={fecharFotoModal}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: `${BRAND.marrom}aa`,
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 24,
+              zIndex: 100,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: BRAND.branco,
+                borderRadius: 24,
+                padding: 28,
+                width: '100%',
+                maxWidth: 460,
+                position: 'relative',
+              }}
+            >
+              <button
+                onClick={fecharFotoModal}
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 999,
+                  background: BRAND.bege,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: BRAND.marrom,
+                }}
+                aria-label="Fechar"
+              >
+                <XIcon size={16} />
+              </button>
+
+              <div
+                className="font-mono"
+                style={{
+                  fontSize: 10,
+                  color: BRAND.rosa,
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}
+              >
+                pedido #{fotoModalPedido.id.slice(-6).toUpperCase()}
+              </div>
+              <h2
+                className="font-display"
+                style={{
+                  fontSize: 26,
+                  fontWeight: 700,
+                  fontStyle: 'italic',
+                  color: BRAND.marrom,
+                  margin: '0 0 18px',
+                }}
+              >
+                foto do <span style={{ color: BRAND.rosa }}>bolo pronto</span>
+              </h2>
+
+              {fotoPreview ? (
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={fotoPreview}
+                    alt="preview"
+                    style={{
+                      width: '100%',
+                      borderRadius: 16,
+                      border: `1px solid ${BRAND.begeEsc}`,
+                      display: 'block',
+                    }}
+                  />
+                  <button
+                    onClick={() => setFotoPreview(null)}
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      padding: '4px 12px',
+                      borderRadius: 999,
+                      background: `${BRAND.marrom}cc`,
+                      color: BRAND.bege,
+                      border: 'none',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    trocar
+                  </button>
+                </div>
+              ) : (
+                <label
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    padding: '36px 16px',
+                    borderRadius: 16,
+                    border: `2px dashed ${BRAND.rosa}66`,
+                    background: `${BRAND.rosa}06`,
+                    cursor: processandoArquivo ? 'wait' : 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <ImagePlus size={32} style={{ color: BRAND.rosa }} />
+                  <div
+                    className="font-display"
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: BRAND.marrom,
+                    }}
+                  >
+                    {processandoArquivo ? 'processando...' : 'escolher foto do celular'}
+                  </div>
+                  <div
+                    className="font-mono"
+                    style={{
+                      fontSize: 10,
+                      color: `${BRAND.marrom}77`,
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    redimensionada automaticamente
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    disabled={processandoArquivo}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleArquivoSelecionado(f);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              )}
+
+              <textarea
+                value={fotoLegenda}
+                onChange={(e) => setFotoLegenda(e.target.value)}
+                placeholder="legenda (opcional) — ex: sai daqui em 30min!"
+                maxLength={140}
+                style={{
+                  width: '100%',
+                  minHeight: 64,
+                  marginTop: 14,
+                  padding: 14,
+                  borderRadius: 14,
+                  border: `1.5px solid ${BRAND.begeEsc}`,
+                  background: BRAND.bege,
+                  fontFamily: 'inherit',
+                  fontSize: 13,
+                  color: BRAND.marrom,
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
+              <div className="font-mono" style={{ fontSize: 10, color: `${BRAND.marrom}66`, marginTop: 4, textAlign: 'right' }}>
+                {fotoLegenda.length}/140
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                <button
+                  onClick={fecharFotoModal}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    borderRadius: 999,
+                    background: 'transparent',
+                    border: `2px solid ${BRAND.begeEsc}`,
+                    color: BRAND.marrom,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  cancelar
+                </button>
+                <motion.button
+                  whileHover={{ scale: fotoPreview && !enviandoFoto ? 1.02 : 1 }}
+                  whileTap={{ scale: fotoPreview && !enviandoFoto ? 0.98 : 1 }}
+                  onClick={enviarFotoPronto}
+                  disabled={!fotoPreview || enviandoFoto}
+                  style={{
+                    flex: 2,
+                    padding: '12px 20px',
+                    borderRadius: 999,
+                    background: fotoPreview ? BRAND.rosa : BRAND.begeEsc,
+                    color: fotoPreview ? BRAND.branco : `${BRAND.marrom}66`,
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: fotoPreview && !enviandoFoto ? 'pointer' : 'not-allowed',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  {enviandoFoto ? 'enviando...' : 'enviar pro cliente'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

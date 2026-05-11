@@ -213,6 +213,78 @@ export default function OrderTracking() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
           {/* Left column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Foto do bolo pronto */}
+            {pedido.fotosEntrega && pedido.fotosEntrega.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  border: `1px solid ${BRAND.begeEsc}`,
+                  boxShadow: `0 12px 32px ${BRAND.rosa}1a`,
+                }}
+              >
+                <div style={{ position: 'relative', aspectRatio: '4/3', background: BRAND.bege }}>
+                  <img
+                    src={pedido.fotosEntrega[0].url}
+                    alt="Seu bolo pronto"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  <div
+                    className="font-mono"
+                    style={{
+                      position: 'absolute',
+                      top: 16,
+                      left: 16,
+                      padding: '6px 14px',
+                      borderRadius: 999,
+                      background: BRAND.rosa,
+                      color: BRAND.branco,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    pronto pra você
+                  </div>
+                </div>
+                <div style={{ padding: 20 }}>
+                  <div
+                    className="font-display"
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 700,
+                      fontStyle: 'italic',
+                      color: BRAND.marrom,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    olha como ficou <span style={{ color: BRAND.rosa }}>✨</span>
+                  </div>
+                  {pedido.fotosEntrega[0].legenda && (
+                    <p style={{ fontSize: 14, color: `${BRAND.marrom}aa`, marginTop: 8, lineHeight: 1.45 }}>
+                      {pedido.fotosEntrega[0].legenda}
+                    </p>
+                  )}
+                  <div
+                    className="font-mono"
+                    style={{
+                      fontSize: 10,
+                      color: `${BRAND.marrom}66`,
+                      letterSpacing: '0.06em',
+                      marginTop: 10,
+                    }}
+                  >
+                    enviada em {fmtDate(pedido.fotosEntrega[0].enviadaEm)}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* Timeline */}
             {!cancelado && (
               <motion.div

@@ -94,6 +94,22 @@ export function useCancelarPedidoCliente() {
   });
 }
 
+export function useAdicionarFotoPronto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, url, legenda }: { id: string; url: string; legenda?: string }) =>
+      api.post(`/orders/${id}/foto-pronto`, { url, legenda }).then((r) => r.data),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin-orders'] });
+      qc.invalidateQueries({ queryKey: ['order', vars.id] });
+      toast.success('Foto enviada pro cliente!');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? 'Erro ao enviar foto');
+    },
+  });
+}
+
 export function useUpdateOrderStatus() {
   const qc = useQueryClient();
   return useMutation({
