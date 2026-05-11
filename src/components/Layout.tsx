@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag,
   Menu,
@@ -8,11 +9,78 @@ import {
   LogOut,
   ClipboardList,
   Settings,
+  Cake,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { useCartStore } from '../store/cart.store';
+import { BRAND } from '../styles/brand';
 
 const ADMIN_ROLES = ['OPERADOR', 'GERENTE', 'ADMINISTRADOR'];
+
+/* ─── Tiny decorative star ─── */
+function NavStar({ size = 8, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className}>
+      <path
+        d="M50 0L61 28 82 10 70 37 99 38 77 55 91 80 64 72 62 99 50 78 38 99 36 72 9 80 23 55 1 38 30 37 18 10 43 28Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+/* ─── Stacked Logo ─── */
+function StackedLogo() {
+  return (
+    <Link to="/" className="flex-shrink-0 group relative" aria-label="Início">
+      <div style={{ lineHeight: 0.75, letterSpacing: '-0.02em' }}>
+        <span
+          className="font-display block"
+          style={{
+            fontSize: 18,
+            fontWeight: 800,
+            fontStyle: 'italic',
+            color: BRAND.rosa,
+            transform: 'translateY(2px)',
+            transition: 'color 0.3s',
+          }}
+        >
+          delícias
+        </span>
+        <span
+          className="font-display block"
+          style={{
+            fontSize: 22,
+            fontWeight: 900,
+            color: BRAND.marrom,
+            letterSpacing: '-0.04em',
+            transition: 'color 0.3s',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 10,
+              verticalAlign: 'super',
+              marginRight: 2,
+              fontWeight: 800,
+              fontStyle: 'italic',
+              color: BRAND.rosa,
+            }}
+          >
+            da
+          </span>
+          van
+        </span>
+      </div>
+      {/* Hover underline drip effect */}
+      <span
+        className="absolute -bottom-1 left-0 right-0 h-[3px] rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
+        style={{ background: BRAND.rosa }}
+      />
+    </Link>
+  );
+}
 
 function Header() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -22,12 +90,20 @@ function Header() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const cartCount = items.reduce((sum, i) => sum + i.quantidade, 0);
   const isAdmin = user && ADMIN_ROLES.includes(user.role);
 
-  // Close user dropdown on outside click
+  // Track scroll for header style change
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -38,7 +114,7 @@ function Header() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Close mobile menu on route change
+  // Close menus on route change
   useEffect(() => {
     setMobileOpen(false);
     setUserMenuOpen(false);
@@ -51,138 +127,294 @@ function Header() {
   }
 
   const navLinks = [
-    { to: '/cardapio', label: 'Cardápio' },
-    { to: '/montar', label: 'Montar Bolo' },
+    { to: '/', label: 'início' },
+    { to: '/cardapio', label: 'cardápio' },
+    { to: '/montar', label: 'montar bolo' },
   ];
 
-  const isActiveLink = (path: string) => location.pathname === path;
+  const isActiveLink = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   return (
     <>
-      <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-brand-begeEsc/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left: Logo */}
-            <Link
-              to="/"
-              className="flex-shrink-0 font-display text-2xl text-brand-marrom hover:text-brand-rosa transition-colors duration-200"
-            >
-              Delícias da Vann
-            </Link>
+      <motion.header
+        initial={{ y: -80 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed top-0 w-full z-50 transition-all duration-500"
+        style={{
+          background: scrolled
+            ? `${BRAND.bege}f2`
+            : `${BRAND.bege}00`,
+          backdropFilter: scrolled ? 'blur(20px) saturate(1.4)' : 'none',
+          borderBottom: scrolled ? `1px solid ${BRAND.begeEsc}88` : '1px solid transparent',
+          boxShadow: scrolled
+            ? '0 4px 30px rgba(66,39,22,0.06)'
+            : 'none',
+        }}
+      >
+        <div className="max-w-[1400px] mx-auto px-5 md:px-8">
+          <div className="flex items-center justify-between h-[68px]">
+            {/* ── Logo ── */}
+            <StackedLogo />
 
-            {/* Center: Desktop nav links */}
-            <nav className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`
-                    relative px-4 py-2 rounded-full font-body font-semibold text-sm tracking-wide transition-all duration-200
-                    ${
-                      isActiveLink(link.to)
-                        ? 'text-brand-rosa bg-brand-rosa/10'
-                        : 'text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5'
-                    }
-                  `}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className={`
-                    flex items-center gap-1.5 px-4 py-2 rounded-full font-body font-semibold text-sm tracking-wide transition-all duration-200
-                    ${
-                      location.pathname.startsWith('/admin')
-                        ? 'text-brand-rosa bg-brand-rosa/10'
-                        : 'text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5'
-                    }
-                  `}
-                >
-                  <Settings size={15} />
-                  Admin
-                </Link>
-              )}
+            {/* ── Desktop Navigation ── */}
+            <nav className="hidden md:flex items-center">
+              <div
+                className="flex items-center gap-0.5 p-1 rounded-full"
+                style={{
+                  background: `${BRAND.branco}cc`,
+                  border: `1px solid ${BRAND.begeEsc}66`,
+                  boxShadow: '0 2px 12px rgba(66,39,22,0.04)',
+                }}
+              >
+                {navLinks.map((link) => {
+                  const active = isActiveLink(link.to);
+                  return (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className="relative px-5 py-2 font-body text-[13px] font-semibold tracking-wide transition-all duration-300"
+                      style={{
+                        color: active ? BRAND.branco : BRAND.marrom,
+                        borderRadius: 999,
+                      }}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="navPill"
+                          className="absolute inset-0 rounded-full"
+                          style={{ background: BRAND.marrom }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative z-10">{link.label}</span>
+                    </Link>
+                  );
+                })}
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="relative flex items-center gap-1.5 px-4 py-2 font-body text-[13px] font-semibold tracking-wide transition-all duration-300"
+                    style={{
+                      color: location.pathname.startsWith('/admin') ? BRAND.branco : BRAND.marrom,
+                      borderRadius: 999,
+                    }}
+                  >
+                    {location.pathname.startsWith('/admin') && (
+                      <motion.div
+                        layoutId="navPill"
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: BRAND.marrom }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <Settings size={13} className="relative z-10" />
+                    <span className="relative z-10">admin</span>
+                  </Link>
+                )}
+              </div>
             </nav>
 
-            {/* Right: Cart + Auth + Mobile toggle */}
-            <div className="flex items-center gap-2">
-              {/* Cart icon — always visible */}
+            {/* ── Right side: Cart + User + Mobile ── */}
+            <div className="flex items-center gap-1.5">
+              {/* Cart */}
               <Link
                 to="/checkout"
-                className="relative p-2 rounded-full text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5 transition-all duration-200"
+                className="relative group p-2.5 rounded-full transition-all duration-300"
+                style={{
+                  background: cartCount > 0 ? `${BRAND.rosa}15` : 'transparent',
+                  color: BRAND.marrom,
+                }}
                 aria-label="Carrinho"
               >
-                <ShoppingBag size={22} />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[20px] h-5 px-1 text-[11px] font-body font-bold text-white bg-brand-rosa rounded-full shadow-sm">
-                    {cartCount > 99 ? '99+' : cartCount}
-                  </span>
-                )}
+                <ShoppingBag
+                  size={20}
+                  strokeWidth={2.2}
+                  className="group-hover:scale-110 transition-transform duration-300"
+                  style={{ color: cartCount > 0 ? BRAND.rosa : BRAND.marrom }}
+                />
+                <AnimatePresence>
+                  {cartCount > 0 && (
+                    <motion.span
+                      key="cart-badge"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-0.5 -right-0.5 flex items-center justify-center font-body font-bold"
+                      style={{
+                        minWidth: 20,
+                        height: 20,
+                        padding: '0 5px',
+                        fontSize: 10,
+                        color: BRAND.bege,
+                        background: BRAND.rosa,
+                        borderRadius: 999,
+                        border: `2px solid ${BRAND.bege}`,
+                        boxShadow: '0 2px 8px rgba(237,113,162,0.35)',
+                      }}
+                    >
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Link>
 
-              {/* Desktop auth */}
+              {/* Desktop User Menu */}
               <div className="hidden md:block">
                 {isAuthenticated && user ? (
                   <div className="relative" ref={userMenuRef}>
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5 transition-all duration-200 font-body font-semibold text-sm"
+                      className="flex items-center gap-2 py-1.5 pl-1.5 pr-3 rounded-full font-body font-semibold text-[13px] transition-all duration-300"
+                      style={{
+                        background: userMenuOpen ? `${BRAND.rosa}15` : `${BRAND.branco}cc`,
+                        border: `1px solid ${userMenuOpen ? BRAND.rosa + '40' : BRAND.begeEsc + '66'}`,
+                        color: BRAND.marrom,
+                        boxShadow: '0 2px 12px rgba(66,39,22,0.04)',
+                      }}
                     >
-                      <div className="w-8 h-8 rounded-full bg-brand-rosa/15 flex items-center justify-center">
-                        <User size={16} className="text-brand-rosa" />
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center font-display font-bold text-[13px]"
+                        style={{ background: BRAND.rosa, color: BRAND.bege }}
+                      >
+                        {user.nome.charAt(0).toUpperCase()}
                       </div>
-                      <span className="max-w-[120px] truncate">
-                        {user.nome.split(' ')[0]}
-                      </span>
+                      <span className="max-w-[80px] truncate">{user.nome.split(' ')[0]}</span>
+                      <ChevronDown
+                        size={14}
+                        className="transition-transform duration-200"
+                        style={{
+                          transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          opacity: 0.5,
+                        }}
+                      />
                     </button>
 
                     {/* Dropdown */}
-                    {userMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-brand-begeEsc/30 py-2 animate-in fade-in slide-in-from-top-2 duration-150">
-                        <div className="px-4 py-2 border-b border-brand-begeEsc/30">
-                          <p className="font-body font-semibold text-sm text-brand-marrom truncate">
-                            {user.nome}
-                          </p>
-                          <p className="font-body text-xs text-brand-marrom/60 truncate">
-                            {user.email}
-                          </p>
-                        </div>
-                        <Link
-                          to="/pedidos"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm font-body text-brand-marrom hover:bg-brand-bege transition-colors"
-                          onClick={() => setUserMenuOpen(false)}
+                    <AnimatePresence>
+                      {userMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                          className="absolute right-0 mt-2 w-60 overflow-hidden"
+                          style={{
+                            background: BRAND.branco,
+                            borderRadius: 20,
+                            border: `1px solid ${BRAND.begeEsc}66`,
+                            boxShadow:
+                              '0 20px 40px rgba(66,39,22,0.12), 0 4px 12px rgba(66,39,22,0.06)',
+                          }}
                         >
-                          <ClipboardList size={16} className="text-brand-rosa" />
-                          Meus Pedidos
-                        </Link>
-                        <Link
-                          to="/perfil"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm font-body text-brand-marrom hover:bg-brand-bege transition-colors"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          <User size={16} className="text-brand-rosa" />
-                          Perfil
-                        </Link>
-                        <div className="border-t border-brand-begeEsc/30 mt-1 pt-1">
-                          <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-body text-brand-marrom hover:bg-brand-bege transition-colors"
+                          {/* User info header */}
+                          <div
+                            className="px-5 py-4"
+                            style={{
+                              background: `linear-gradient(135deg, ${BRAND.rosa}12, ${BRAND.roxo}08)`,
+                              borderBottom: `1px solid ${BRAND.begeEsc}44`,
+                            }}
                           >
-                            <LogOut size={16} className="text-brand-rosa" />
-                            Sair
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-base"
+                                style={{ background: BRAND.rosa, color: BRAND.bege }}
+                              >
+                                {user.nome.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p
+                                  className="font-display font-semibold text-sm truncate"
+                                  style={{ color: BRAND.marrom }}
+                                >
+                                  {user.nome}
+                                </p>
+                                <p
+                                  className="font-body text-[11px] truncate"
+                                  style={{ color: `${BRAND.marrom}88` }}
+                                >
+                                  {user.email}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="py-2 px-2">
+                            <Link
+                              to="/pedidos"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-body text-[13px] font-medium transition-all duration-200"
+                              style={{ color: BRAND.marrom }}
+                              onClick={() => setUserMenuOpen(false)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = `${BRAND.rosa}0c`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                              }}
+                            >
+                              <ClipboardList size={16} style={{ color: BRAND.rosa }} />
+                              meus pedidos
+                            </Link>
+                            <Link
+                              to="/perfil"
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-body text-[13px] font-medium transition-all duration-200"
+                              style={{ color: BRAND.marrom }}
+                              onClick={() => setUserMenuOpen(false)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = `${BRAND.rosa}0c`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                              }}
+                            >
+                              <User size={16} style={{ color: BRAND.rosa }} />
+                              perfil
+                            </Link>
+                          </div>
+
+                          <div style={{ borderTop: `1px dashed ${BRAND.begeEsc}66` }} className="px-2 py-2">
+                            <button
+                              onClick={handleLogout}
+                              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl font-body text-[13px] font-medium transition-all duration-200"
+                              style={{ color: `${BRAND.marrom}99` }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = `${BRAND.rosa}0c`;
+                                e.currentTarget.style.color = BRAND.marrom;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = `${BRAND.marrom}99`;
+                              }}
+                            >
+                              <LogOut size={16} style={{ color: BRAND.rosa }} />
+                              sair
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ) : (
                   <Link
                     to="/login"
-                    className="px-5 py-2 rounded-full bg-brand-rosa text-white font-body font-semibold text-sm hover:bg-brand-rosa/90 transition-colors duration-200 shadow-sm"
+                    className="group flex items-center gap-2 py-2 pl-4 pr-5 rounded-full font-body font-bold text-[13px] transition-all duration-300"
+                    style={{
+                      background: BRAND.marrom,
+                      color: BRAND.bege,
+                      boxShadow: '0 2px 12px rgba(66,39,22,0.15)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = BRAND.rosa;
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(237,113,162,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = BRAND.marrom;
+                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(66,39,22,0.15)';
+                    }}
                   >
-                    Entrar
+                    <Cake size={15} className="group-hover:rotate-12 transition-transform duration-300" />
+                    entrar
                   </Link>
                 )}
               </div>
@@ -190,128 +422,202 @@ function Header() {
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="md:hidden p-2 rounded-full text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5 transition-all duration-200"
+                className="md:hidden p-2.5 rounded-full transition-all duration-300"
+                style={{
+                  color: BRAND.marrom,
+                  background: mobileOpen ? `${BRAND.rosa}15` : 'transparent',
+                }}
                 aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
               >
-                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* Mobile slide-in menu */}
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-40 bg-brand-marrom/30 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
-          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setMobileOpen(false)}
-      />
+      {/* ─── Mobile Menu ─── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-40 md:hidden"
+              style={{
+                background: `${BRAND.marrom}40`,
+                backdropFilter: 'blur(8px)',
+              }}
+              onClick={() => setMobileOpen(false)}
+            />
 
-      {/* Panel */}
-      <div
-        className={`fixed top-0 right-0 z-50 h-full w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-out md:hidden ${
-          mobileOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between px-5 h-16 border-b border-brand-begeEsc/30">
-          <span className="font-display text-lg text-brand-marrom">Menu</span>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="p-2 rounded-full text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5 transition-all"
-            aria-label="Fechar menu"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <nav className="flex flex-col px-3 py-4 gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`px-4 py-3 rounded-xl font-body font-semibold text-sm transition-all duration-200 ${
-                isActiveLink(link.to)
-                  ? 'text-brand-rosa bg-brand-rosa/10'
-                  : 'text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5'
-              }`}
+            {/* Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed top-0 right-0 z-50 h-full w-[300px] md:hidden flex flex-col"
+              style={{
+                background: BRAND.bege,
+                boxShadow: '-20px 0 60px rgba(66,39,22,0.15)',
+              }}
             >
-              {link.label}
-            </Link>
-          ))}
-          {isAdmin && (
-            <Link
-              to="/admin"
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl font-body font-semibold text-sm transition-all duration-200 ${
-                location.pathname.startsWith('/admin')
-                  ? 'text-brand-rosa bg-brand-rosa/10'
-                  : 'text-brand-marrom hover:text-brand-rosa hover:bg-brand-rosa/5'
-              }`}
-            >
-              <Settings size={16} />
-              Admin
-            </Link>
-          )}
-        </nav>
-
-        <div className="border-t border-brand-begeEsc/30 px-3 py-4">
-          {isAuthenticated && user ? (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <div className="w-10 h-10 rounded-full bg-brand-rosa/15 flex items-center justify-center flex-shrink-0">
-                  <User size={18} className="text-brand-rosa" />
+              {/* Mobile header */}
+              <div
+                className="flex items-center justify-between px-6 h-[68px] flex-shrink-0"
+                style={{ borderBottom: `1px dashed ${BRAND.begeEsc}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <NavStar size={10} className="text-brand-rosa" />
+                  <span className="font-display text-lg font-bold" style={{ color: BRAND.marrom }}>
+                    menu
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-body font-semibold text-sm text-brand-marrom truncate">
-                    {user.nome}
-                  </p>
-                  <p className="font-body text-xs text-brand-marrom/60 truncate">
-                    {user.email}
-                  </p>
-                </div>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="p-2 rounded-full transition-all"
+                  style={{ color: BRAND.marrom }}
+                  aria-label="Fechar"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <Link
-                to="/pedidos"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-body text-brand-marrom hover:bg-brand-bege transition-colors"
+
+              {/* Nav links */}
+              <nav className="flex flex-col px-4 py-6 gap-1 flex-1">
+                {navLinks.map((link, i) => {
+                  const active = isActiveLink(link.to);
+                  return (
+                    <motion.div
+                      key={link.to}
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 + i * 0.05 }}
+                    >
+                      <Link
+                        to={link.to}
+                        className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-display text-[15px] font-semibold transition-all duration-200"
+                        style={{
+                          color: active ? BRAND.bege : BRAND.marrom,
+                          background: active ? BRAND.marrom : 'transparent',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        {active && <NavStar size={8} className="text-brand-rosa" />}
+                        {link.label}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+                {isAdmin && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-display text-[15px] font-semibold transition-all duration-200"
+                      style={{
+                        color: location.pathname.startsWith('/admin') ? BRAND.bege : BRAND.marrom,
+                        background: location.pathname.startsWith('/admin') ? BRAND.marrom : 'transparent',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      <Settings size={16} />
+                      admin
+                    </Link>
+                  </motion.div>
+                )}
+              </nav>
+
+              {/* User section at bottom */}
+              <div
+                className="flex-shrink-0 px-4 py-5"
+                style={{ borderTop: `1px dashed ${BRAND.begeEsc}` }}
               >
-                <ClipboardList size={16} className="text-brand-rosa" />
-                Meus Pedidos
-              </Link>
-              <Link
-                to="/perfil"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-body text-brand-marrom hover:bg-brand-bege transition-colors"
-              >
-                <User size={16} className="text-brand-rosa" />
-                Perfil
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-body text-brand-marrom hover:bg-brand-bege transition-colors"
-              >
-                <LogOut size={16} className="text-brand-rosa" />
-                Sair
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="flex items-center justify-center w-full px-5 py-3 rounded-xl bg-brand-rosa text-white font-body font-semibold text-sm hover:bg-brand-rosa/90 transition-colors shadow-sm"
-            >
-              Entrar
-            </Link>
-          )}
-        </div>
-      </div>
+                {isAuthenticated && user ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="flex flex-col gap-1"
+                  >
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-base flex-shrink-0"
+                        style={{ background: BRAND.rosa, color: BRAND.bege }}
+                      >
+                        {user.nome.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-display font-semibold text-sm truncate" style={{ color: BRAND.marrom }}>
+                          {user.nome}
+                        </p>
+                        <p className="font-body text-[11px] truncate" style={{ color: `${BRAND.marrom}77` }}>
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/pedidos"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl font-body text-[13px] font-medium"
+                      style={{ color: BRAND.marrom }}
+                    >
+                      <ClipboardList size={16} style={{ color: BRAND.rosa }} />
+                      meus pedidos
+                    </Link>
+                    <Link
+                      to="/perfil"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl font-body text-[13px] font-medium"
+                      style={{ color: BRAND.marrom }}
+                    >
+                      <User size={16} style={{ color: BRAND.rosa }} />
+                      perfil
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-body text-[13px] font-medium"
+                      style={{ color: `${BRAND.marrom}88` }}
+                    >
+                      <LogOut size={16} style={{ color: BRAND.rosa }} />
+                      sair
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                    <Link
+                      to="/login"
+                      className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full font-body font-bold text-sm"
+                      style={{
+                        background: BRAND.marrom,
+                        color: BRAND.bege,
+                        boxShadow: '0 4px 16px rgba(66,39,22,0.2)',
+                      }}
+                    >
+                      <Cake size={16} />
+                      entrar
+                    </Link>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-brand-bege">
+    <div className="min-h-screen" style={{ background: BRAND.bege }}>
       <Header />
-      <main className="pt-16">{children}</main>
+      <main className="pt-[68px]">{children}</main>
     </div>
   );
 }

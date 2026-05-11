@@ -6,6 +6,19 @@ import {
   useToggleCupom,
 } from '../../../hooks/useCupons';
 import { BRAND } from '../../../styles/brand';
+import { Star11 } from '../../../components/BrandElements';
+
+const inputStyle: React.CSSProperties = {
+  padding: '10px 14px',
+  borderRadius: 999,
+  border: `1.5px solid ${BRAND.begeEsc}`,
+  background: BRAND.branco,
+  fontSize: 13,
+  fontWeight: 500,
+  color: BRAND.marrom,
+  outline: 'none',
+  width: '100%',
+};
 
 export default function AdminCoupons() {
   const { data: cupons = [], isLoading } = useCupons();
@@ -52,28 +65,60 @@ export default function AdminCoupons() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bege font-body px-6 py-8">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="font-display text-4xl font-black text-brand-marrom mb-8">Cupons</h1>
-
-        <div
-          className="bg-white rounded-3xl p-6 mb-6"
-          style={{ border: `2px solid ${BRAND.begeEsc}` }}
+    <div className="min-h-screen font-body" style={{ background: BRAND.bege }}>
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: 32 }}
         >
-          <div className="font-display text-sm font-bold text-brand-marrom/60 uppercase mb-4">
+          <div style={{ fontSize: 12, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Space Grotesk' }}>
+            <Star11 size={12} color={BRAND.rosa} /> campanhas e descontos
+          </div>
+          <h1
+            className="font-display"
+            style={{
+              fontSize: 'clamp(36px, 5vw, 64px)',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              lineHeight: 0.95,
+              fontStyle: 'italic',
+              color: BRAND.marrom,
+              marginTop: 8,
+            }}
+          >
+            cupons<span style={{ color: BRAND.rosa }}>.</span>
+          </h1>
+        </motion.div>
+
+        {/* Create form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          style={{
+            background: BRAND.branco,
+            borderRadius: 24,
+            border: `1px solid ${BRAND.begeEsc}`,
+            padding: 24,
+            marginBottom: 24,
+          }}
+        >
+          <div className="font-mono" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.marrom}88`, marginBottom: 16 }}>
             Novo cupom
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             <input
-              placeholder="Código (ex: NIVER15)"
+              placeholder="Codigo (ex: NIVER15)"
               value={form.codigo}
               onChange={(e) => setForm((f) => ({ ...f, codigo: e.target.value.toUpperCase() }))}
-              className="field"
+              style={inputStyle}
             />
             <select
               value={form.tipo}
               onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as any }))}
-              className="field"
+              style={inputStyle}
             >
               <option value="PERCENTUAL">% desconto</option>
               <option value="FIXO">R$ fixo</option>
@@ -82,114 +127,165 @@ export default function AdminCoupons() {
               placeholder="Valor"
               value={form.valor}
               onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))}
-              className="field"
+              style={inputStyle}
             />
             <input
-              placeholder="Mínimo R$"
+              placeholder="Minimo R$"
               value={form.minimoCompra}
               onChange={(e) => setForm((f) => ({ ...f, minimoCompra: e.target.value }))}
-              className="field"
+              style={inputStyle}
             />
             <input
-              placeholder="Uso máximo (opcional)"
+              placeholder="Uso maximo (opcional)"
               value={form.usoMaximo}
               onChange={(e) => setForm((f) => ({ ...f, usoMaximo: e.target.value }))}
-              className="field"
+              style={inputStyle}
             />
             <input
               type="date"
               value={form.validoAte}
               onChange={(e) => setForm((f) => ({ ...f, validoAte: e.target.value }))}
-              className="field"
+              style={inputStyle}
             />
             <input
               placeholder="Campanha"
               value={form.campanha}
               onChange={(e) => setForm((f) => ({ ...f, campanha: e.target.value }))}
-              className="field"
+              style={inputStyle}
             />
             <input
-              placeholder="Descrição"
+              placeholder="Descricao"
               value={form.descricao}
               onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-              className="field"
+              style={inputStyle}
             />
           </div>
           <button
             disabled={isPending || !form.codigo || !form.valor || !form.validoAte}
             onClick={submit}
-            className="mt-4 px-6 py-3 rounded-xl font-bold text-white disabled:opacity-40"
-            style={{ background: BRAND.rosa }}
+            style={{
+              marginTop: 16,
+              padding: '12px 28px',
+              borderRadius: 999,
+              fontWeight: 700,
+              fontSize: 14,
+              color: BRAND.branco,
+              background: BRAND.rosa,
+              border: 'none',
+              cursor: 'pointer',
+              opacity: isPending || !form.codigo || !form.valor || !form.validoAte ? 0.4 : 1,
+            }}
           >
             Criar cupom
           </button>
-        </div>
+        </motion.div>
 
+        {/* Coupon list */}
         {isLoading ? (
-          <div className="text-center text-brand-marrom/50 py-12">Carregando...</div>
+          <div style={{ textAlign: 'center', color: `${BRAND.marrom}77`, padding: '48px 0' }}>Carregando...</div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div
+            style={{
+              background: BRAND.branco,
+              borderRadius: 24,
+              border: `1px solid ${BRAND.begeEsc}`,
+              padding: 24,
+            }}
+          >
             {cupons.map((c: any, i: number) => (
               <motion.div
                 key={c.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.02 }}
-                className="bg-white rounded-2xl p-4 flex items-center gap-4"
                 style={{
-                  border: `1.5px solid ${BRAND.begeEsc}`,
-                  opacity: c.ativo ? 1 : 0.6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '14px 0',
+                  borderBottom: i < cupons.length - 1 ? `1px dashed ${BRAND.begeEsc}` : 'none',
+                  opacity: c.ativo ? 1 : 0.5,
                 }}
               >
-                <div className="flex-1">
-                  <div className="font-display font-bold text-brand-marrom">
-                    {c.codigo}
+                {/* Active indicator */}
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: c.ativo ? BRAND.rosa : `${BRAND.marrom}33`,
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="font-display" style={{ fontWeight: 700, fontSize: 16, color: BRAND.marrom }}>
+                      {c.codigo}
+                    </span>
                     {c.campanha && (
-                      <span className="text-[10px] ml-2 px-2 py-0.5 rounded-full bg-brand-bege text-brand-marrom/60">
+                      <span
+                        style={{
+                          fontSize: 10,
+                          padding: '2px 10px',
+                          borderRadius: 999,
+                          background: BRAND.bege,
+                          color: `${BRAND.marrom}88`,
+                          fontWeight: 600,
+                        }}
+                      >
                         {c.campanha}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-brand-marrom/60">
+                  <div className="font-mono" style={{ fontSize: 11, color: `${BRAND.marrom}88`, marginTop: 4 }}>
                     {c.tipo === 'PERCENTUAL'
                       ? `${c.valor}% off`
                       : `R$ ${Number(c.valor).toFixed(2)}`}{' '}
-                    · mín R$ {Number(c.minimoCompra).toFixed(2)} · usos {c.usoAtual}
+                    · min R$ {Number(c.minimoCompra).toFixed(2)} · usos {c.usoAtual}
                     {c.usoMaximo ? `/${c.usoMaximo}` : ''}
                   </div>
                   {c.descricao && (
-                    <div className="text-xs text-brand-marrom/50 italic mt-0.5">
+                    <div style={{ fontSize: 12, color: `${BRAND.marrom}66`, fontStyle: 'italic', marginTop: 2 }}>
                       {c.descricao}
                     </div>
                   )}
                 </div>
-                <div className="text-xs text-brand-marrom/50">
-                  até {new Date(c.validoAte).toLocaleDateString('pt-BR')}
+
+                {/* Expiry */}
+                <div className="font-mono" style={{ fontSize: 11, color: `${BRAND.marrom}66`, flexShrink: 0 }}>
+                  ate {new Date(c.validoAte).toLocaleDateString('pt-BR')}
                 </div>
+
+                {/* Toggle */}
                 <button
                   onClick={() => toggle({ id: c.id, ativo: !c.ativo })}
-                  className="px-3 py-1 rounded-lg text-xs font-bold text-white"
-                  style={{ background: c.ativo ? BRAND.marrom : BRAND.rosa }}
+                  style={{
+                    padding: '7px 16px',
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: BRAND.branco,
+                    background: c.ativo ? BRAND.marrom : BRAND.rosa,
+                    border: 'none',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
                 >
                   {c.ativo ? 'Desativar' : 'Ativar'}
                 </button>
               </motion.div>
             ))}
+
+            {cupons.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: `${BRAND.marrom}66`, fontSize: 14 }}>
+                Nenhum cupom criado.
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      <style>{`
-        .field {
-          padding: 0.75rem;
-          border-radius: 0.75rem;
-          background: ${BRAND.bege};
-          border: 1.5px solid ${BRAND.begeEsc};
-          font-weight: 500;
-          font-size: 0.875rem;
-          outline: none;
-        }
-      `}</style>
     </div>
   );
 }

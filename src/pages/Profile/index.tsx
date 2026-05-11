@@ -1,8 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useMe, useUpdateMe, useAnonimizar } from '../../hooks/useUser';
 import { useAuthStore } from '../../store/auth.store';
 import { BRAND } from '../../styles/brand';
+import { Star11 } from '../../components/BrandElements';
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 18px',
+  borderRadius: 999,
+  border: `1.5px solid ${BRAND.begeEsc}`,
+  background: BRAND.branco,
+  fontSize: 14,
+  fontWeight: 500,
+  color: BRAND.marrom,
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s',
+};
 
 export default function Profile() {
   const { data: me, isLoading } = useMe();
@@ -35,8 +51,21 @@ export default function Profile() {
 
   if (isLoading || !me) {
     return (
-      <div className="min-h-screen bg-brand-bege font-body flex items-center justify-center">
-        <div className="text-brand-marrom/60">Carregando...</div>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: BRAND.bege,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          className="font-display"
+          style={{ color: BRAND.marrom, opacity: 0.4, fontStyle: 'italic', fontSize: 20 }}
+        >
+          carregando...
+        </div>
       </div>
     );
   }
@@ -46,7 +75,7 @@ export default function Profile() {
   const handleAnonimizar = () => {
     if (
       confirm(
-        'Isso irá apagar todos os seus dados pessoais. Seus pedidos serão mantidos de forma anonimizada. Confirma?',
+        'Isso ira apagar todos os seus dados pessoais. Seus pedidos serao mantidos de forma anonimizada. Confirma?',
       )
     ) {
       anonimizar(undefined, {
@@ -59,131 +88,257 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bege font-body px-6 py-12">
-      <div className="max-w-xl mx-auto">
-        <h1 className="font-display text-4xl font-black text-brand-marrom mb-8">
-          Meu perfil
-        </h1>
+    <div style={{ minHeight: '100vh', background: BRAND.bege, padding: '48px 24px 80px' }}>
+      <div style={{ maxWidth: 600, margin: '0 auto' }}>
+        {/* Section label */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="font-mono"
+          style={{
+            fontSize: 12,
+            color: BRAND.rosa,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginBottom: 12,
+          }}
+        >
+          &#10022; meu perfil
+        </motion.div>
 
-        <Card title="Dados pessoais">
-          <Field label="Nome">
-            <input
-              value={form.nome}
-              onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
-              className="input"
-            />
-          </Field>
-          <Field label="Telefone">
-            <input
-              value={form.telefone}
-              onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
-              className="input"
-            />
-          </Field>
-          <Field label="CPF (para nota fiscal)">
-            <input
-              value={form.cpf}
-              onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))}
-              className="input"
-            />
-          </Field>
-          <Field label="Data de nascimento (vem cupom de aniversário!)">
-            <input
-              type="date"
-              value={form.dataNascimento}
-              onChange={(e) => setForm((f) => ({ ...f, dataNascimento: e.target.value }))}
-              className="input"
-            />
-          </Field>
-        </Card>
+        {/* Heading */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="font-display"
+          style={{
+            fontSize: 'clamp(36px, 5vw, 56px)',
+            fontWeight: 700,
+            fontStyle: 'italic',
+            color: BRAND.marrom,
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+            margin: '0 0 40px',
+          }}
+        >
+          ola, <span style={{ color: BRAND.rosa }}>{me.nome?.split(' ')[0] || 'voce'}</span>.
+        </motion.h1>
 
-        <Card title="Comunicação">
-          <label className="flex items-start gap-3 cursor-pointer">
+        {/* Personal data card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          style={{
+            background: BRAND.branco,
+            borderRadius: 24,
+            padding: 28,
+            border: `1px solid ${BRAND.begeEsc}`,
+            marginBottom: 16,
+          }}
+        >
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 11,
+              color: BRAND.rosa,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              marginBottom: 20,
+            }}
+          >
+            dados pessoais
+          </div>
+
+          {[
+            { key: 'nome', label: 'nome', type: 'text' },
+            { key: 'telefone', label: 'telefone', type: 'text' },
+            { key: 'cpf', label: 'cpf (para nota fiscal)', type: 'text' },
+            { key: 'dataNascimento', label: 'data de nascimento (vem cupom!)', type: 'date' },
+          ].map((f) => (
+            <div key={f.key} style={{ marginBottom: 14 }}>
+              <label
+                className="font-mono"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: BRAND.marrom,
+                  opacity: 0.6,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  display: 'block',
+                  marginBottom: 6,
+                }}
+              >
+                {f.label}
+              </label>
+              <input
+                type={f.type}
+                value={(form as any)[f.key]}
+                onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                style={inputStyle}
+                onFocus={(e) => (e.currentTarget.style.borderColor = BRAND.rosa)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = BRAND.begeEsc)}
+              />
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Communication card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{
+            background: BRAND.branco,
+            borderRadius: 24,
+            padding: 28,
+            border: `1px solid ${BRAND.begeEsc}`,
+            marginBottom: 16,
+          }}
+        >
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 11,
+              color: BRAND.rosa,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              marginBottom: 20,
+            }}
+          >
+            comunicacao
+          </div>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+              cursor: 'pointer',
+            }}
+          >
             <input
               type="checkbox"
               checked={form.marketingOptIn}
               onChange={(e) =>
                 setForm((f) => ({ ...f, marketingOptIn: e.target.checked }))
               }
-              className="mt-1"
+              style={{ marginTop: 4, accentColor: BRAND.rosa }}
             />
             <div>
-              <div className="font-bold text-brand-marrom text-sm">
+              <div style={{ fontWeight: 700, color: BRAND.marrom, fontSize: 14 }}>
                 Aceito receber novidades e cupons
               </div>
-              <div className="text-xs text-brand-marrom/60 mt-0.5">
+              <div
+                className="font-mono"
+                style={{
+                  fontSize: 11,
+                  color: BRAND.marrom,
+                  opacity: 0.5,
+                  marginTop: 4,
+                  letterSpacing: '0.04em',
+                }}
+              >
                 Por WhatsApp. Pode desabilitar a qualquer momento.
               </div>
             </div>
           </label>
-        </Card>
+        </motion.div>
 
-        <button
+        {/* Save button */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleSave}
           disabled={isPending}
-          className="w-full py-4 rounded-2xl font-bold text-white mb-8 disabled:opacity-40"
-          style={{ background: BRAND.rosa, boxShadow: `0 8px 24px ${BRAND.rosa}44` }}
+          style={{
+            width: '100%',
+            padding: '16px 32px',
+            borderRadius: 999,
+            background: BRAND.rosa,
+            color: BRAND.branco,
+            fontWeight: 700,
+            fontSize: 16,
+            border: 'none',
+            cursor: isPending ? 'not-allowed' : 'pointer',
+            opacity: isPending ? 0.4 : 1,
+            marginBottom: 24,
+            boxShadow: `0 8px 24px ${BRAND.rosa}44`,
+            transition: 'opacity 0.2s',
+          }}
         >
-          {isPending ? 'Salvando...' : 'Salvar alterações'}
-        </button>
+          {isPending ? 'salvando...' : 'salvar alteracoes'}
+        </motion.button>
 
-        <Card title="Privacidade (LGPD)">
-          <p className="text-xs text-brand-marrom/70 mb-3">
-            Você tem direito a acessar, corrigir e excluir seus dados a qualquer momento.
-            Ao anonimizar, seus dados pessoais são apagados; seus pedidos são mantidos
-            sem identificação.
-          </p>
-          <button
-            onClick={handleAnonimizar}
-            className="w-full py-3 rounded-xl font-bold text-sm"
+        {/* LGPD card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          style={{
+            background: BRAND.marrom,
+            borderRadius: 24,
+            padding: 28,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <Star11 size={20} color={BRAND.rosa} fill={BRAND.rosa} stroke={0} />
+            <div
+              className="font-mono"
+              style={{
+                fontSize: 11,
+                color: BRAND.rosa,
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+              }}
+            >
+              privacidade (lgpd)
+            </div>
+          </div>
+
+          <p
             style={{
-              background: '#FFE8E8',
-              color: '#CC0000',
-              border: '1.5px solid #FFB4B4',
+              fontSize: 13,
+              color: BRAND.bege,
+              opacity: 0.7,
+              lineHeight: 1.5,
+              marginBottom: 20,
             }}
           >
-            Excluir meus dados
+            Voce tem direito a acessar, corrigir e excluir seus dados a qualquer momento.
+            Ao anonimizar, seus dados pessoais sao apagados; seus pedidos sao mantidos
+            sem identificacao.
+          </p>
+
+          <button
+            onClick={handleAnonimizar}
+            style={{
+              width: '100%',
+              padding: '14px 24px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.1)',
+              color: '#FF8A8A',
+              fontWeight: 700,
+              fontSize: 14,
+              border: '1.5px solid rgba(255,138,138,0.3)',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+            }}
+          >
+            excluir meus dados
           </button>
-        </Card>
+        </motion.div>
       </div>
-
-      <style>{`
-        .input {
-          width: 100%;
-          padding: 0.75rem;
-          border-radius: 0.75rem;
-          background: ${BRAND.bege};
-          border: 1.5px solid ${BRAND.begeEsc};
-          font-weight: 500;
-          font-size: 0.875rem;
-          outline: none;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div
-      className="bg-white rounded-3xl p-5 mb-4"
-      style={{ border: `2px solid ${BRAND.begeEsc}`, boxShadow: '0 2px 12px rgba(66,39,22,.04)' }}
-    >
-      <div className="font-display text-sm font-bold text-brand-marrom/60 uppercase tracking-wider mb-3">
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-3">
-      <div className="text-[10px] font-bold text-brand-marrom/50 uppercase tracking-wider mb-1">
-        {label}
-      </div>
-      {children}
     </div>
   );
 }

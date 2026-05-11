@@ -2,11 +2,12 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMyOrders, useReorder } from '../../hooks/useOrders';
 import { BRAND } from '../../styles/brand';
+import { Star11 } from '../../components/BrandElements';
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   AGUARDANDO_PAGAMENTO: { label: 'Aguardando', color: '#B5651D', bg: '#FFF3D4' },
   PAGO: { label: 'Pago', color: '#3355BB', bg: '#E8F0FF' },
-  EM_PRODUCAO: { label: 'Em produção', color: '#B5651D', bg: '#FFF0E8' },
+  EM_PRODUCAO: { label: 'Em producao', color: '#B5651D', bg: '#FFF0E8' },
   PRONTO: { label: 'Pronto', color: '#2D7A2D', bg: '#E8F4E8' },
   EM_ENTREGA: { label: 'Em entrega', color: '#1A7B9A', bg: '#E8F7FC' },
   ENTREGUE: { label: 'Entregue', color: '#666', bg: '#F0F0F0' },
@@ -19,76 +20,244 @@ export default function History() {
   const { mutate: reorder } = useReorder();
 
   return (
-    <div className="min-h-screen bg-brand-bege font-body px-6 py-12">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="font-display text-4xl font-black text-brand-marrom mb-8">
-          Meus pedidos
-        </h1>
+    <div style={{ minHeight: '100vh', background: BRAND.bege, padding: '48px 24px 80px' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        {/* Section label */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="font-mono"
+          style={{
+            fontSize: 12,
+            color: BRAND.rosa,
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginBottom: 12,
+          }}
+        >
+          &#10022; meus pedidos
+        </motion.div>
+
+        {/* Heading */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="font-display"
+          style={{
+            fontSize: 'clamp(40px, 6vw, 64px)',
+            fontWeight: 700,
+            fontStyle: 'italic',
+            color: BRAND.marrom,
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+            margin: '0 0 48px',
+          }}
+        >
+          historico de <span style={{ color: BRAND.rosa }}>pedidos</span>.
+        </motion.h1>
 
         {isLoading ? (
-          <div className="text-center text-brand-marrom/50 py-16">Carregando...</div>
-        ) : pedidos.length === 0 ? (
-          <div className="text-center text-brand-marrom/60 py-16">
-            <div className="font-display text-2xl font-bold text-brand-marrom mb-2">
-              Ainda não há pedidos por aqui
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '80px 0',
+              color: BRAND.marrom,
+              opacity: 0.4,
+            }}
+          >
+            <div
+              className="font-display"
+              style={{ fontStyle: 'italic', fontSize: 20 }}
+            >
+              carregando...
             </div>
+          </div>
+        ) : pedidos.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ textAlign: 'center', padding: '80px 0' }}
+          >
+            <Star11 size={48} color={BRAND.begeEsc} fill={BRAND.begeEsc} stroke={0} />
+            <div
+              className="font-display"
+              style={{
+                fontSize: 'clamp(28px, 4vw, 40px)',
+                fontStyle: 'italic',
+                color: BRAND.marrom,
+                fontWeight: 700,
+                marginTop: 20,
+                lineHeight: 1.1,
+              }}
+            >
+              ops, nada por aqui...
+            </div>
+            <p style={{ color: BRAND.marrom, opacity: 0.5, marginTop: 12, fontSize: 14 }}>
+              seus pedidos vao aparecer aqui
+            </p>
             <Link
               to="/cardapio"
-              className="text-brand-rosa font-bold underline underline-offset-4"
+              style={{
+                display: 'inline-block',
+                marginTop: 24,
+                padding: '14px 32px',
+                borderRadius: 999,
+                background: BRAND.rosa,
+                color: BRAND.branco,
+                fontWeight: 700,
+                fontSize: 14,
+                textDecoration: 'none',
+              }}
             >
-              Ver cardápio
+              ver cardapio
             </Link>
-          </div>
+          </motion.div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {pedidos.map((p: any, i: number) => {
               const sc = STATUS_LABEL[p.status] ?? { label: p.status, color: '#666', bg: '#EEE' };
               return (
                 <motion.div
                   key={p.id}
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="bg-white rounded-2xl p-5"
+                  transition={{ delay: i * 0.04, duration: 0.5 }}
                   style={{
-                    border: `1.5px solid ${BRAND.begeEsc}`,
-                    boxShadow: '0 2px 12px rgba(66,39,22,.04)',
+                    background: BRAND.branco,
+                    borderRadius: 24,
+                    padding: 24,
+                    border: `1px solid ${BRAND.begeEsc}`,
                   }}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  {/* Header row */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 12,
+                    }}
+                  >
                     <Link
                       to={`/pedidos/${p.id}`}
-                      className="font-display font-bold text-brand-marrom"
+                      className="font-display"
+                      style={{
+                        fontWeight: 700,
+                        color: BRAND.marrom,
+                        fontSize: 18,
+                        textDecoration: 'none',
+                        letterSpacing: '-0.02em',
+                      }}
                     >
                       #{p.id.slice(-6).toUpperCase()}
                     </Link>
                     <div
-                      className="px-3 py-1 rounded-full text-[10px] font-bold"
-                      style={{ background: sc.bg, color: sc.color }}
+                      className="font-mono"
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 999,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        background: sc.bg,
+                        color: sc.color,
+                      }}
                     >
                       {sc.label}
                     </div>
                   </div>
-                  <div className="text-sm text-brand-marrom/70 mb-2">
+
+                  {/* Items */}
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: BRAND.marrom,
+                      opacity: 0.7,
+                      marginBottom: 16,
+                      lineHeight: 1.5,
+                    }}
+                  >
                     {p.itens?.map((it: any) => `${it.quantidade}x ${it.produto?.nome}`).join(', ')}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-brand-marrom/50">
-                      {new Date(p.createdAt).toLocaleDateString('pt-BR')}
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="font-bold text-brand-marrom">
+
+                  {/* Footer */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: 14,
+                      borderTop: `1px solid ${BRAND.begeEsc}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div
+                        className="font-mono"
+                        style={{
+                          fontSize: 10,
+                          color: BRAND.marrom,
+                          opacity: 0.5,
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {new Date(p.createdAt).toLocaleDateString('pt-BR')}
+                      </div>
+                      <div
+                        className="font-display"
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 800,
+                          color: BRAND.marrom,
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
                         R$ {Number(p.valorTotal).toFixed(2).replace('.', ',')}
                       </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
                       {p.status === 'ENTREGUE' && (
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => reorder(p.id)}
-                          className="px-3 py-1 rounded-lg text-[10px] font-bold text-white"
-                          style={{ background: BRAND.rosa }}
+                          style={{
+                            padding: '8px 20px',
+                            borderRadius: 999,
+                            background: BRAND.rosa,
+                            color: BRAND.branco,
+                            fontWeight: 700,
+                            fontSize: 12,
+                            border: 'none',
+                            cursor: 'pointer',
+                            letterSpacing: '0.04em',
+                          }}
                         >
                           repetir
-                        </button>
+                        </motion.button>
                       )}
+                      <Link
+                        to={`/pedidos/${p.id}`}
+                        style={{
+                          padding: '8px 20px',
+                          borderRadius: 999,
+                          background: 'transparent',
+                          color: BRAND.marrom,
+                          fontWeight: 700,
+                          fontSize: 12,
+                          border: `2px solid ${BRAND.marrom}`,
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        ver detalhes
+                      </Link>
                     </div>
                   </div>
                 </motion.div>

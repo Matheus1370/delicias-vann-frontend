@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useProducts } from '../../../hooks/useProducts';
 import { api } from '../../../services/api';
 import { BRAND } from '../../../styles/brand';
+import { Star11 } from '../../../components/BrandElements';
 
 const currency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
@@ -63,49 +64,91 @@ export default function Balcao() {
   );
 
   return (
-    <div className="min-h-screen bg-brand-bege font-body px-6 py-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="font-display text-4xl font-black text-brand-marrom mb-2">
-          PDV Balcão
-        </h1>
-        <p className="text-brand-marrom/60 mb-8">
-          Registre vendas rápidas — o estoque da vitrine é descontado automaticamente.
-        </p>
+    <div className="min-h-screen font-body" style={{ background: BRAND.bege }}>
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: 32 }}
+        >
+          <div style={{ fontSize: 12, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Space Grotesk' }}>
+            <Star11 size={12} color={BRAND.rosa} /> ponto de venda
+          </div>
+          <h1
+            className="font-display"
+            style={{
+              fontSize: 'clamp(36px, 5vw, 64px)',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              lineHeight: 0.95,
+              fontStyle: 'italic',
+              color: BRAND.marrom,
+              marginTop: 8,
+            }}
+          >
+            pdv <span style={{ color: BRAND.rosa }}>balcao</span>.
+          </h1>
+          <p className="font-mono" style={{ color: `${BRAND.marrom}88`, fontSize: 12, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Vendas rapidas — estoque descontado automaticamente
+          </p>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        {/* Main grid: products + cart sidebar */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
+          {/* Product grid */}
+          <div>
             {isLoading ? (
-              <div className="text-center py-20 text-brand-marrom/50">Carregando...</div>
+              <div style={{ textAlign: 'center', padding: '80px 0', color: `${BRAND.marrom}77` }}>
+                Carregando...
+              </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {prontos.map((p: any) => (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                {prontos.map((p: any, i: number) => (
                   <motion.button
                     key={p.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
                     whileTap={{ scale: 0.96 }}
                     onClick={() => handleAdd(p.id)}
                     disabled={p.fulfillment === 'MAKE_TO_STOCK' && p.estoqueVitrine <= 0}
-                    className="bg-white rounded-2xl p-4 text-left disabled:opacity-40"
                     style={{
-                      border: `1.5px solid ${BRAND.begeEsc}`,
-                      boxShadow: '0 2px 8px rgba(66,39,22,.05)',
+                      background: BRAND.branco,
+                      borderRadius: 24,
+                      border: `1px solid ${BRAND.begeEsc}`,
+                      padding: 16,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      opacity: p.fulfillment === 'MAKE_TO_STOCK' && p.estoqueVitrine <= 0 ? 0.35 : 1,
+                      transition: 'box-shadow 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(66,39,22,0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                     }}
                   >
                     {p.imagemUrl && (
                       <img
                         src={p.imagemUrl}
                         alt={p.nome}
-                        className="w-full aspect-[4/3] object-cover rounded-xl mb-2"
+                        style={{
+                          width: '100%',
+                          aspectRatio: '4/3',
+                          objectFit: 'cover',
+                          borderRadius: 16,
+                          marginBottom: 10,
+                        }}
                       />
                     )}
-                    <div className="font-bold text-brand-marrom text-sm">{p.nome}</div>
-                    <div
-                      className="font-display text-lg font-black"
-                      style={{ color: BRAND.rosa }}
-                    >
+                    <div style={{ fontWeight: 700, color: BRAND.marrom, fontSize: 13 }}>{p.nome}</div>
+                    <div className="font-display" style={{ fontSize: 18, fontWeight: 700, color: BRAND.rosa, marginTop: 2 }}>
                       {currency(Number(p.precoVenda))}
                     </div>
                     {p.fulfillment === 'MAKE_TO_STOCK' && (
-                      <div className="text-[10px] text-brand-marrom/50 font-bold">
+                      <div className="font-mono" style={{ fontSize: 10, color: `${BRAND.marrom}66`, fontWeight: 700, marginTop: 4, textTransform: 'uppercase' }}>
                         vitrine: {p.estoqueVitrine}
                       </div>
                     )}
@@ -115,43 +158,89 @@ export default function Balcao() {
             )}
           </div>
 
-          <div
-            className="bg-white rounded-3xl p-6 h-fit sticky top-4"
-            style={{ border: `2px solid ${BRAND.begeEsc}` }}
+          {/* Cart sidebar (dark panel) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            style={{
+              background: BRAND.marrom,
+              borderRadius: 24,
+              padding: 24,
+              position: 'sticky',
+              top: 16,
+              color: BRAND.bege,
+            }}
           >
-            <div className="font-display text-sm font-bold text-brand-marrom/60 uppercase mb-4">
+            <div className="font-mono" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.bege}88`, marginBottom: 16 }}>
               Venda atual
             </div>
+
             {Object.keys(itens).length === 0 ? (
-              <div className="text-sm text-brand-marrom/50 py-4">Nenhum item</div>
+              <div style={{ fontSize: 13, color: `${BRAND.bege}66`, padding: '16px 0' }}>
+                Nenhum item adicionado
+              </div>
             ) : (
-              <div className="flex flex-col gap-2 mb-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16 }}>
                 {Object.entries(itens).map(([id, q]) => {
                   const p = produtos.find((pp: any) => pp.id === id);
                   if (!p) return null;
                   return (
                     <div
                       key={id}
-                      className="flex items-center justify-between py-2 border-b border-brand-bege"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 0',
+                        borderBottom: `1px dashed ${BRAND.bege}22`,
+                      }}
                     >
-                      <div className="flex-1 text-sm">
-                        <div className="font-bold text-brand-marrom">{p.nome}</div>
-                        <div className="text-xs text-brand-marrom/60">
-                          {q} × {currency(Number(p.precoVenda))}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.bege }}>{p.nome}</div>
+                        <div className="font-mono" style={{ fontSize: 11, color: `${BRAND.bege}88`, marginTop: 1 }}>
+                          {q} x {currency(Number(p.precoVenda))}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button
                           onClick={() => handleRemove(id)}
-                          className="w-6 h-6 rounded-lg bg-brand-bege font-bold"
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 8,
+                            background: `${BRAND.bege}22`,
+                            color: BRAND.bege,
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: 14,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                         >
                           −
                         </button>
-                        <div className="w-6 text-center font-bold text-sm">{q}</div>
+                        <div style={{ width: 24, textAlign: 'center', fontWeight: 700, fontSize: 13, color: BRAND.bege }}>
+                          {q}
+                        </div>
                         <button
                           onClick={() => handleAdd(id)}
-                          className="w-6 h-6 rounded-lg text-white font-bold text-xs"
-                          style={{ background: BRAND.rosa }}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 8,
+                            background: BRAND.rosa,
+                            color: BRAND.branco,
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: 14,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                         >
                           +
                         </button>
@@ -162,33 +251,61 @@ export default function Balcao() {
               </div>
             )}
 
+            {/* Notes input */}
             <input
-              placeholder="Observações"
+              placeholder="Observacoes"
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
-              className="w-full p-2 rounded-xl text-sm mb-3"
-              style={{ background: BRAND.bege, border: `1.5px solid ${BRAND.begeEsc}` }}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: 999,
+                border: `1.5px solid ${BRAND.bege}33`,
+                background: `${BRAND.bege}11`,
+                fontSize: 13,
+                color: BRAND.bege,
+                outline: 'none',
+                marginBottom: 16,
+              }}
             />
 
-            <div className="flex justify-between mb-4 pt-3 border-t-2 border-brand-bege">
-              <span className="font-display font-bold text-brand-marrom">Total</span>
-              <span
-                className="font-display text-2xl font-black"
-                style={{ color: BRAND.rosa }}
-              >
+            {/* Total */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 0',
+                borderTop: `1.5px solid ${BRAND.bege}33`,
+                marginBottom: 16,
+              }}
+            >
+              <span className="font-display" style={{ fontWeight: 700, fontSize: 14, color: BRAND.bege }}>Total</span>
+              <span className="font-display" style={{ fontSize: 28, fontWeight: 700, color: BRAND.rosa }}>
                 {currency(total)}
               </span>
             </div>
 
+            {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={isPending || Object.keys(itens).length === 0}
-              className="w-full py-3 rounded-xl font-bold text-white disabled:opacity-40"
-              style={{ background: BRAND.rosa }}
+              style={{
+                width: '100%',
+                padding: '14px 0',
+                borderRadius: 999,
+                fontWeight: 700,
+                fontSize: 15,
+                color: BRAND.marrom,
+                background: BRAND.rosa,
+                border: 'none',
+                cursor: 'pointer',
+                opacity: isPending || Object.keys(itens).length === 0 ? 0.4 : 1,
+              }}
             >
               {isPending ? 'Registrando...' : 'Finalizar venda'}
             </button>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
+import { BRAND } from '../../../styles/brand';
 
 export default function ProductionSheet() {
   const { id } = useParams();
@@ -19,14 +20,14 @@ export default function ProductionSheet() {
 
   if (isLoading || !pedido) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-body">
-        <div className="text-gray-500">Carregando ficha...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: BRAND.bege }}>
+        <div style={{ color: `${BRAND.marrom}77`, fontWeight: 500 }}>Carregando ficha...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white p-10 font-body text-black">
+    <div className="font-body" style={{ minHeight: '100vh', background: BRAND.branco, padding: 40, color: BRAND.marrom }}>
       <style>{`
         @media print {
           body { font-family: Georgia, serif; }
@@ -34,50 +35,94 @@ export default function ProductionSheet() {
         }
       `}</style>
 
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-6">
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        {/* Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: `2px solid ${BRAND.marrom}`,
+            paddingBottom: 20,
+            marginBottom: 28,
+          }}
+        >
           <div>
-            <div className="text-xs uppercase tracking-wider">Delicias da Vann</div>
-            <div className="text-3xl font-black">Ficha de Produção</div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: BRAND.rosa, fontFamily: 'Space Grotesk' }}>
+              Delicias da Vann
+            </div>
+            <div className="font-display" style={{ fontSize: 28, fontWeight: 700, fontStyle: 'italic', color: BRAND.marrom, marginTop: 4 }}>
+              Ficha de <span style={{ color: BRAND.rosa }}>Producao</span>
+            </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider">Pedido</div>
-            <div className="text-3xl font-black">
+          <div style={{ textAlign: 'right' }}>
+            <div className="font-mono" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.marrom}88` }}>
+              Pedido
+            </div>
+            <div className="font-display" style={{ fontSize: 28, fontWeight: 700, color: BRAND.marrom }}>
               #{pedido.id.slice(-6).toUpperCase()}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div>
-            <div className="text-[10px] font-bold uppercase text-gray-500">Cliente</div>
-            <div className="text-base font-bold">{pedido.cliente?.nome}</div>
+        {/* Client / Delivery info */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+          <div
+            style={{
+              background: BRAND.bege,
+              borderRadius: 16,
+              padding: 16,
+              border: `1px solid ${BRAND.begeEsc}`,
+            }}
+          >
+            <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.marrom}88`, marginBottom: 6 }}>
+              Cliente
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>{pedido.cliente?.nome}</div>
             {pedido.cliente?.telefone && (
-              <div className="text-sm">{pedido.cliente.telefone}</div>
+              <div style={{ fontSize: 13, color: `${BRAND.marrom}88`, marginTop: 2 }}>{pedido.cliente.telefone}</div>
             )}
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase text-gray-500">Entrega</div>
-            <div className="text-base font-bold">
+          <div
+            style={{
+              background: BRAND.bege,
+              borderRadius: 16,
+              padding: 16,
+              border: `1px solid ${BRAND.begeEsc}`,
+            }}
+          >
+            <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.marrom}88`, marginBottom: 6 }}>
+              Entrega
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>
               {pedido.dataAgendamento
                 ? new Date(pedido.dataAgendamento).toLocaleString('pt-BR')
-                : '—'}
+                : '\u2014'}
             </div>
-            <div className="text-sm">{pedido.modalidadeEntrega}</div>
+            <div style={{ fontSize: 13, color: `${BRAND.marrom}88`, marginTop: 2 }}>{pedido.modalidadeEntrega}</div>
           </div>
         </div>
 
+        {/* Production window */}
         {pedido.reservaProducao?.slot && (
-          <div className="mb-6 p-4 border-2 border-black">
-            <div className="text-[10px] font-bold uppercase text-gray-500">
-              Janela de produção
+          <div
+            style={{
+              marginBottom: 24,
+              padding: 16,
+              borderRadius: 16,
+              background: BRAND.marrom,
+              color: BRAND.bege,
+            }}
+          >
+            <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.bege}aa`, marginBottom: 6 }}>
+              Janela de producao
             </div>
-            <div className="text-base font-bold">
+            <div className="font-display" style={{ fontSize: 20, fontWeight: 700 }}>
               {new Date(pedido.reservaProducao.slot.horaInicio).toLocaleTimeString('pt-BR', {
                 hour: '2-digit',
                 minute: '2-digit',
               })}{' '}
-              —{' '}
+              \u2014{' '}
               {new Date(pedido.reservaProducao.slot.horaFim).toLocaleTimeString('pt-BR', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -86,41 +131,80 @@ export default function ProductionSheet() {
           </div>
         )}
 
-        <div className="border-t-2 border-b-2 border-black py-4 mb-6">
-          <div className="text-[10px] font-bold uppercase text-gray-500 mb-3">Itens</div>
-          {pedido.itens?.map((item: any) => (
-            <div key={item.id} className="mb-4">
-              <div className="flex items-baseline gap-3">
-                <div className="text-2xl font-black">{item.quantidade}×</div>
-                <div className="text-xl font-bold">{item.produto?.nome}</div>
+        {/* Items */}
+        <div
+          style={{
+            background: BRAND.branco,
+            borderRadius: 24,
+            border: `1px solid ${BRAND.begeEsc}`,
+            padding: 24,
+            marginBottom: 24,
+          }}
+        >
+          <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.marrom}88`, marginBottom: 16 }}>
+            Itens do pedido
+          </div>
+
+          {pedido.itens?.map((item: any, idx: number) => (
+            <div
+              key={item.id}
+              style={{
+                paddingBottom: 16,
+                marginBottom: 16,
+                borderBottom: idx < pedido.itens.length - 1 ? `1px dashed ${BRAND.begeEsc}` : 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <div className="font-display" style={{ fontSize: 28, fontWeight: 700, color: BRAND.rosa }}>
+                  {item.quantidade}x
+                </div>
+                <div className="font-display" style={{ fontSize: 20, fontWeight: 700, color: BRAND.marrom }}>
+                  {item.produto?.nome}
+                </div>
               </div>
+
               {item.opcoesEscolhidas && (
-                <div className="ml-12 mt-1">
+                <div style={{ marginLeft: 48, marginTop: 6 }}>
                   {Object.entries(item.opcoesEscolhidas).map(([k, v]) => (
-                    <div key={k} className="text-sm">
-                      <span className="uppercase text-[10px] text-gray-500">{k}:</span>{' '}
-                      <span className="font-bold">{String(v)}</span>
+                    <div key={k} style={{ fontSize: 13 }}>
+                      <span className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: `${BRAND.marrom}88` }}>{k}:</span>{' '}
+                      <span style={{ fontWeight: 700 }}>{String(v)}</span>
                     </div>
                   ))}
                 </div>
               )}
+
               {item.personalizacao && (
-                <div className="ml-12 mt-1 p-2 border-l-4 border-black bg-gray-50 text-sm italic">
-                  “{item.personalizacao}”
+                <div
+                  style={{
+                    marginLeft: 48,
+                    marginTop: 8,
+                    padding: '8px 12px',
+                    borderLeft: `3px solid ${BRAND.rosa}`,
+                    background: BRAND.bege,
+                    borderRadius: '0 8px 8px 0',
+                    fontSize: 13,
+                    fontStyle: 'italic',
+                    color: `${BRAND.marrom}cc`,
+                  }}
+                >
+                  "{item.personalizacao}"
                 </div>
               )}
 
+              {/* Ingredients table */}
               {item.produto?.fichasTecnicas?.[0]?.itens?.length > 0 && (
-                <div className="ml-12 mt-2 text-xs">
-                  <div className="uppercase text-[9px] text-gray-500">Insumos</div>
-                  <table className="w-full mt-1">
+                <div style={{ marginLeft: 48, marginTop: 12 }}>
+                  <div className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: `${BRAND.marrom}88`, marginBottom: 6 }}>
+                    Insumos
+                  </div>
+                  <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                     <tbody>
                       {item.produto.fichasTecnicas[0].itens.map((f: any) => (
-                        <tr key={f.id} className="border-b border-gray-200">
-                          <td className="py-1">{f.insumo?.nome}</td>
-                          <td className="py-1 text-right font-bold">
-                            {(Number(f.quantidade) * item.quantidade).toFixed(2)}{' '}
-                            {f.unidadeMedida}
+                        <tr key={f.id} style={{ borderBottom: `1px dashed ${BRAND.begeEsc}` }}>
+                          <td style={{ padding: '4px 0', color: BRAND.marrom }}>{f.insumo?.nome}</td>
+                          <td style={{ padding: '4px 0', textAlign: 'right', fontWeight: 700, color: BRAND.marrom }}>
+                            {(Number(f.quantidade) * item.quantidade).toFixed(2)} {f.unidadeMedida}
                           </td>
                         </tr>
                       ))}
@@ -132,28 +216,52 @@ export default function ProductionSheet() {
           ))}
         </div>
 
+        {/* Notes */}
         {pedido.observacoes && (
-          <div className="mb-6 p-4 border-2 border-black">
-            <div className="text-[10px] font-bold uppercase text-gray-500">
-              Observações do cliente
+          <div
+            style={{
+              marginBottom: 24,
+              padding: 16,
+              borderRadius: 16,
+              background: `${BRAND.rosa}12`,
+              border: `1.5px solid ${BRAND.rosa}33`,
+            }}
+          >
+            <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: BRAND.rosa, marginBottom: 6 }}>
+              Observacoes do cliente
             </div>
-            <div className="text-sm mt-1">{pedido.observacoes}</div>
+            <div style={{ fontSize: 14, color: BRAND.marrom }}>{pedido.observacoes}</div>
           </div>
         )}
 
-        <div className="mt-10 grid grid-cols-2 gap-6">
-          <div className="border-t border-black pt-2">
-            <div className="text-[10px] uppercase text-gray-500">Iniciado em</div>
+        {/* Signature lines */}
+        <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div style={{ borderTop: `1px solid ${BRAND.begeEsc}`, paddingTop: 8 }}>
+            <div className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: `${BRAND.marrom}88` }}>
+              Iniciado em
+            </div>
           </div>
-          <div className="border-t border-black pt-2">
-            <div className="text-[10px] uppercase text-gray-500">Concluído em</div>
+          <div style={{ borderTop: `1px solid ${BRAND.begeEsc}`, paddingTop: 8 }}>
+            <div className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: `${BRAND.marrom}88` }}>
+              Concluido em
+            </div>
           </div>
         </div>
 
-        <div className="no-print mt-8 text-center">
+        {/* Print button */}
+        <div className="no-print" style={{ marginTop: 32, textAlign: 'center' }}>
           <button
             onClick={() => window.print()}
-            className="px-6 py-3 rounded-xl font-bold text-white bg-black"
+            style={{
+              padding: '12px 32px',
+              borderRadius: 999,
+              fontWeight: 700,
+              fontSize: 14,
+              color: BRAND.branco,
+              background: BRAND.rosa,
+              border: 'none',
+              cursor: 'pointer',
+            }}
           >
             Imprimir
           </button>

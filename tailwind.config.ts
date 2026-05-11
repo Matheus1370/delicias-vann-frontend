@@ -7,15 +7,20 @@ export default {
       colors: {
         brand: {
           bege: '#F6EDE7',
+          begeEsc: '#E8D8CE',
           rosa: '#ED71A2',
+          rosaDeep: '#D84E86',
           roxo: '#7684BF',
+          roxoDeep: '#5E6BA6',
           ciano: '#58C2E0',
           marrom: '#422716',
+          branco: '#FFFFFF',
         },
       },
       fontFamily: {
-        display: ['"Playfair Display"', 'serif'],
+        display: ['Fraunces', 'serif'],
         body: ['Quicksand', 'sans-serif'],
+        mono: ['"Space Grotesk"', 'sans-serif'],
       },
       animation: {
         drip: 'drip 1s ease-out forwards',

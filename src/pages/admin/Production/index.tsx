@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSlotsRange } from '../../../hooks/useSlots';
 import { BRAND } from '../../../styles/brand';
+import { Star11 } from '../../../components/BrandElements';
 
 function startOfWeek(d: Date) {
   const copy = new Date(d);
@@ -28,7 +29,7 @@ function fmtTime(iso: string) {
   });
 }
 
-const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
 
 export default function AdminProduction() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
@@ -55,66 +56,150 @@ export default function AdminProduction() {
   return (
     <div className="min-h-screen font-body" style={{ background: BRAND.bege }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="font-display text-4xl font-black text-brand-marrom">
-              Produção
-            </h1>
-            <p className="text-brand-marrom/60 mt-1">
-              Semana de {weekStart.toLocaleDateString('pt-BR')}
-            </p>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: 32 }}
+        >
+          <div style={{ fontSize: 12, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Space Grotesk' }}>
+            <Star11 size={12} color={BRAND.rosa} /> calendario de producao
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setWeekStart((w) => addDays(w, -7))}
-              className="px-4 py-2 rounded-full text-xs font-bold bg-white text-brand-marrom"
-              style={{ border: `2px solid ${BRAND.begeEsc}` }}
-            >
-              ← Semana anterior
-            </button>
-            <button
-              onClick={() => setWeekStart(startOfWeek(new Date()))}
-              className="px-4 py-2 rounded-full text-xs font-bold text-white"
-              style={{ background: BRAND.rosa }}
-            >
-              Hoje
-            </button>
-            <button
-              onClick={() => setWeekStart((w) => addDays(w, 7))}
-              className="px-4 py-2 rounded-full text-xs font-bold bg-white text-brand-marrom"
-              style={{ border: `2px solid ${BRAND.begeEsc}` }}
-            >
-              Próxima semana →
-            </button>
-          </div>
-        </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <h1
+                className="font-display"
+                style={{
+                  fontSize: 'clamp(36px, 5vw, 64px)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 0.95,
+                  fontStyle: 'italic',
+                  color: BRAND.marrom,
+                  marginTop: 8,
+                }}
+              >
+                producao<span style={{ color: BRAND.rosa }}>.</span>
+              </h1>
+              <p className="font-mono" style={{ color: `${BRAND.marrom}88`, fontSize: 12, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Semana de {weekStart.toLocaleDateString('pt-BR')}
+              </p>
+            </div>
 
-        {isLoading ? (
-          <div className="text-center py-20 text-brand-marrom/50 font-medium">
-            Carregando slots...
+            {/* Week nav */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setWeekStart((w) => addDays(w, -7))}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: BRAND.branco,
+                  color: BRAND.marrom,
+                  border: `1.5px solid ${BRAND.begeEsc}`,
+                  cursor: 'pointer',
+                }}
+              >
+                ← Anterior
+              </button>
+              <button
+                onClick={() => setWeekStart(startOfWeek(new Date()))}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: BRAND.rosa,
+                  color: BRAND.branco,
+                  border: `1.5px solid ${BRAND.rosa}`,
+                  cursor: 'pointer',
+                }}
+              >
+                Hoje
+              </button>
+              <button
+                onClick={() => setWeekStart((w) => addDays(w, 7))}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: BRAND.branco,
+                  color: BRAND.marrom,
+                  border: `1.5px solid ${BRAND.begeEsc}`,
+                  cursor: 'pointer',
+                }}
+              >
+                Proxima →
+              </button>
+            </div>
           </div>
+        </motion.div>
+
+        {/* Calendar grid */}
+        {isLoading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ textAlign: 'center', padding: '80px 0', color: `${BRAND.marrom}77`, fontWeight: 500 }}
+          >
+            Carregando slots...
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
             {DIAS.map((dia, i) => {
               const day = addDays(weekStart, i);
               const key = fmtDateISO(day);
               const daySlots = slotsByDay.get(key) ?? [];
+              const isToday = fmtDateISO(new Date()) === key;
 
               return (
-                <div key={key} className="flex flex-col gap-2">
-                  <div className="text-center">
-                    <div className="text-xs font-bold text-brand-marrom/50 uppercase">
+                <motion.div
+                  key={key}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                >
+                  {/* Day header */}
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '12px 0',
+                      borderRadius: 16,
+                      background: isToday ? BRAND.rosa : 'transparent',
+                    }}
+                  >
+                    <div className="font-mono" style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      color: isToday ? `${BRAND.branco}bb` : `${BRAND.marrom}66`,
+                    }}>
                       {dia}
                     </div>
-                    <div className="font-display text-2xl font-black text-brand-marrom">
+                    <div className="font-display" style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: isToday ? BRAND.branco : BRAND.marrom,
+                    }}>
                       {day.getDate()}
                     </div>
                   </div>
 
+                  {/* Slots */}
                   {daySlots.length === 0 ? (
                     <div
-                      className="rounded-xl p-3 text-xs text-center text-brand-marrom/40"
-                      style={{ border: `1.5px dashed ${BRAND.begeEsc}` }}
+                      style={{
+                        borderRadius: 16,
+                        padding: 16,
+                        textAlign: 'center',
+                        border: `1.5px dashed ${BRAND.begeEsc}`,
+                        fontSize: 11,
+                        color: `${BRAND.marrom}55`,
+                      }}
                     >
                       sem slots
                     </div>
@@ -122,52 +207,57 @@ export default function AdminProduction() {
                     daySlots.map((s: any, idx: number) => {
                       const pct = s.percentualOcupado;
                       const barColor =
-                        pct >= 100
-                          ? '#CC0000'
-                          : pct >= 75
-                            ? '#B5651D'
-                            : BRAND.rosa;
+                        pct >= 100 ? '#DC2626' : pct >= 75 ? '#F59E0B' : BRAND.rosa;
                       return (
                         <motion.div
                           key={s.id}
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.04 }}
-                          className="bg-white rounded-xl p-3"
                           style={{
-                            border: `1.5px solid ${BRAND.begeEsc}`,
-                            boxShadow: '0 2px 8px rgba(66,39,22,.04)',
+                            background: BRAND.branco,
+                            borderRadius: 16,
+                            padding: 14,
+                            border: `1px solid ${BRAND.begeEsc}`,
                           }}
                         >
-                          <div className="text-xs font-bold text-brand-marrom">
+                          <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.marrom }}>
                             {fmtTime(s.horaInicio)} — {fmtTime(s.horaFim)}
                           </div>
-                          <div className="text-xs text-brand-marrom/60 mt-1">
+                          <div className="font-mono" style={{ fontSize: 11, color: `${BRAND.marrom}88`, marginTop: 4 }}>
                             {s.capacidadeOcupada}/{s.capacidadeMaxima} pts
                           </div>
+                          {/* Capacity bar */}
                           <div
-                            className="mt-2 h-1.5 rounded-full overflow-hidden"
-                            style={{ background: BRAND.begeEsc }}
+                            style={{
+                              marginTop: 8,
+                              height: 6,
+                              borderRadius: 999,
+                              background: BRAND.begeEsc,
+                              overflow: 'hidden',
+                            }}
                           >
-                            <div
-                              className="h-full transition-all"
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(pct, 100)}%` }}
+                              transition={{ duration: 0.6, delay: idx * 0.05 }}
                               style={{
-                                width: `${Math.min(pct, 100)}%`,
+                                height: '100%',
+                                borderRadius: 999,
                                 background: barColor,
                               }}
                             />
                           </div>
                           {s.reservas?.length > 0 && (
-                            <div className="mt-2 text-[10px] text-brand-marrom/50">
-                              {s.reservas.length} pedido
-                              {s.reservas.length !== 1 ? 's' : ''}
+                            <div className="font-mono" style={{ marginTop: 6, fontSize: 10, color: `${BRAND.marrom}66` }}>
+                              {s.reservas.length} pedido{s.reservas.length !== 1 ? 's' : ''}
                             </div>
                           )}
                         </motion.div>
                       );
                     })
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>

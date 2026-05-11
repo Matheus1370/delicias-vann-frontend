@@ -8,11 +8,12 @@ import {
 } from '../../hooks/useOrders';
 import { useAvaliar } from '../../hooks/useAvaliacoes';
 import { BRAND } from '../../styles/brand';
+import { Star11 } from '../../components/BrandElements';
 
 const STEPS = [
   { key: 'AGUARDANDO_PAGAMENTO', label: 'Aguardando pagamento' },
   { key: 'PAGO', label: 'Pagamento confirmado' },
-  { key: 'EM_PRODUCAO', label: 'Em produção' },
+  { key: 'EM_PRODUCAO', label: 'Em producao' },
   { key: 'PRONTO', label: 'Pronto' },
   { key: 'EM_ENTREGA', label: 'Saiu para entrega' },
   { key: 'ENTREGUE', label: 'Entregue' },
@@ -29,7 +30,7 @@ const fmtDate = (iso?: string | null) =>
         hour: '2-digit',
         minute: '2-digit',
       })
-    : '—';
+    : '\u2014';
 
 export default function OrderTracking() {
   const { id } = useParams();
@@ -44,10 +45,20 @@ export default function OrderTracking() {
   if (isLoading) {
     return (
       <div
-        className="min-h-screen font-body flex items-center justify-center"
-        style={{ background: BRAND.bege }}
+        style={{
+          minHeight: '100vh',
+          background: BRAND.bege,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <div className="text-brand-marrom/60 font-medium">Carregando pedido...</div>
+        <div
+          className="font-display"
+          style={{ color: BRAND.marrom, opacity: 0.4, fontStyle: 'italic', fontSize: 20 }}
+        >
+          carregando pedido...
+        </div>
       </div>
     );
   }
@@ -55,20 +66,42 @@ export default function OrderTracking() {
   if (error || !pedido) {
     return (
       <div
-        className="min-h-screen font-body flex items-center justify-center"
-        style={{ background: BRAND.bege }}
+        style={{
+          minHeight: '100vh',
+          background: BRAND.bege,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 16,
+        }}
       >
-        <div className="text-center">
-          <div className="font-display text-3xl font-black text-brand-marrom mb-2">
-            Pedido não encontrado
-          </div>
-          <Link
-            to="/"
-            className="text-brand-rosa font-bold underline underline-offset-4"
-          >
-            Voltar para o início
-          </Link>
+        <Star11 size={48} color={BRAND.begeEsc} fill={BRAND.begeEsc} stroke={0} />
+        <div
+          className="font-display"
+          style={{
+            fontSize: 'clamp(28px, 4vw, 40px)',
+            fontStyle: 'italic',
+            color: BRAND.marrom,
+            fontWeight: 700,
+          }}
+        >
+          ops, nada por aqui...
         </div>
+        <Link
+          to="/"
+          style={{
+            padding: '14px 32px',
+            borderRadius: 999,
+            background: BRAND.rosa,
+            color: BRAND.branco,
+            fontWeight: 700,
+            fontSize: 14,
+            textDecoration: 'none',
+          }}
+        >
+          voltar para o inicio
+        </Link>
       </div>
     );
   }
@@ -78,287 +111,693 @@ export default function OrderTracking() {
   const currentIdx = STEPS.findIndex((s) => s.key === status);
 
   return (
-    <div className="min-h-screen font-body" style={{ background: BRAND.bege }}>
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        <Link
-          to="/"
-          className="text-sm text-brand-marrom/60 font-bold hover:text-brand-rosa"
+    <div style={{ minHeight: '100vh', background: BRAND.bege, padding: '48px 24px 80px' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        {/* Back link */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
         >
-          ← Voltar
-        </Link>
+          <Link
+            to="/pedidos"
+            className="font-mono"
+            style={{
+              fontSize: 12,
+              color: BRAND.marrom,
+              opacity: 0.6,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+            }}
+          >
+            &#8592; voltar aos pedidos
+          </Link>
+        </motion.div>
 
-        <div className="mt-4 flex items-end justify-between">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            marginTop: 20,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            marginBottom: 40,
+          }}
+        >
           <div>
-            <h1 className="font-display text-4xl font-black text-brand-marrom">
-              Pedido #{pedido.id.slice(-6).toUpperCase()}
-            </h1>
-            <p className="text-brand-marrom/60 mt-1">
-              Feito em {fmtDate(pedido.createdAt)}
-            </p>
-          </div>
-          <div
-            className="px-4 py-2 rounded-full text-xs font-bold"
-            style={{
-              background: cancelado ? '#FFE8E8' : BRAND.rosa,
-              color: cancelado ? '#CC0000' : 'white',
-            }}
-          >
-            {cancelado ? 'Cancelado' : STEPS[currentIdx]?.label ?? status}
-          </div>
-        </div>
-
-        {!cancelado && (
-          <div
-            className="mt-10 bg-white rounded-3xl p-8"
-            style={{
-              border: `2px solid ${BRAND.begeEsc}`,
-              boxShadow: '0 4px 24px rgba(66,39,22,.06)',
-            }}
-          >
-            <div className="font-display text-lg font-bold text-brand-marrom mb-6">
-              Acompanhe a produção
-            </div>
-            <div className="flex flex-col gap-4">
-              {STEPS.map((step, i) => {
-                const done = i <= currentIdx;
-                const active = i === currentIdx;
-                return (
-                  <motion.div
-                    key={step.key}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="flex items-center gap-4"
-                  >
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
-                      style={{
-                        background: done ? BRAND.rosa : BRAND.begeEsc,
-                        color: done ? 'white' : BRAND.marrom,
-                      }}
-                    >
-                      {done ? '✓' : i + 1}
-                    </div>
-                    <div
-                      className="font-medium"
-                      style={{
-                        color: active
-                          ? BRAND.marrom
-                          : done
-                            ? BRAND.marrom
-                            : '#9a8478',
-                        fontWeight: active ? 800 : done ? 700 : 500,
-                      }}
-                    >
-                      {step.label}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {pedido.pagamento?.status === 'PENDENTE' && pedido.pagamento?.pixCopiaCola && (
-          <div
-            className="mt-6 bg-white rounded-3xl p-6"
-            style={{ border: `2px dashed ${BRAND.rosa}` }}
-          >
-            <div className="font-display font-bold text-brand-marrom mb-2">
-              Pagamento via Pix
-            </div>
-            {pedido.pagamento.pixQrCodeUrl && (
-              <img
-                src={pedido.pagamento.pixQrCodeUrl}
-                alt="QR Code Pix"
-                className="w-48 h-48 mx-auto my-4"
-              />
-            )}
-            <div className="bg-brand-bege rounded-xl p-3 text-xs break-all text-brand-marrom/80">
-              {pedido.pagamento.pixCopiaCola}
-            </div>
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(pedido.pagamento.pixCopiaCola)
-              }
-              className="mt-3 w-full py-3 rounded-xl font-bold text-white"
-              style={{ background: BRAND.rosa }}
-            >
-              Copiar código Pix
-            </button>
-          </div>
-        )}
-
-        <div
-          className="mt-6 bg-white rounded-3xl p-6"
-          style={{ border: `2px solid ${BRAND.begeEsc}` }}
-        >
-          <div className="font-display font-bold text-brand-marrom mb-4">Itens</div>
-          <div className="flex flex-col gap-3">
-            {pedido.itens?.map((item: any) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border-b border-brand-bege pb-3 last:border-0 last:pb-0"
-              >
-                <div>
-                  <div className="font-bold text-brand-marrom">
-                    {item.quantidade}× {item.produto?.nome}
-                  </div>
-                  {item.personalizacao && (
-                    <div className="text-xs text-brand-marrom/60 mt-0.5">
-                      {item.personalizacao}
-                    </div>
-                  )}
-                </div>
-                <div className="font-bold text-brand-marrom">
-                  {currency(Number(item.precoUnitario) * item.quantidade)}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-4 border-t-2 border-brand-bege flex justify-between">
-            <div className="font-display font-bold text-brand-marrom">Total</div>
-            <div className="font-display text-xl font-black text-brand-marrom">
-              {currency(pedido.valorTotal)}
-            </div>
-          </div>
-        </div>
-
-        {pedido.reservaProducao?.slot && (
-          <div
-            className="mt-6 bg-white rounded-3xl p-6"
-            style={{ border: `2px solid ${BRAND.begeEsc}` }}
-          >
-            <div className="font-display font-bold text-brand-marrom mb-2">
-              Janela de produção
-            </div>
-            <div className="text-brand-marrom/80">
-              {fmtDate(pedido.reservaProducao.slot.horaInicio)} —{' '}
-              {fmtDate(pedido.reservaProducao.slot.horaFim)}
-            </div>
-          </div>
-        )}
-
-        {pedido.entrega?.trackingCode && (
-          <div
-            className="mt-6 bg-white rounded-3xl p-6"
-            style={{ border: `2px solid ${BRAND.begeEsc}` }}
-          >
-            <div className="font-display font-bold text-brand-marrom mb-2">
-              Entrega
-            </div>
-            <div className="text-sm text-brand-marrom/70">
-              Código de rastreio:{' '}
-              <span className="font-mono font-bold text-brand-marrom">
-                {pedido.entrega.trackingCode}
-              </span>
-            </div>
-            {pedido.entrega.previsaoEntrega && (
-              <div className="text-sm text-brand-marrom/70 mt-1">
-                Previsão: {fmtDate(pedido.entrega.previsaoEntrega)}
-              </div>
-            )}
-          </div>
-        )}
-
-        {status === 'ENTREGUE' && !pedido.avaliacao && (
-          <div
-            className="mt-6 bg-white rounded-3xl p-6"
-            style={{ border: `2px solid ${BRAND.rosa}` }}
-          >
-            <div className="font-display font-bold text-brand-marrom mb-3">
-              Como foi sua experiência?
-            </div>
-            <div className="flex gap-2 mb-3">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setNota(n)}
-                  className="text-3xl transition-transform hover:scale-110"
-                  style={{ filter: n <= nota ? 'none' : 'grayscale(100%) opacity(0.3)' }}
-                >
-                  ⭐
-                </button>
-              ))}
-            </div>
-            <textarea
-              value={comentario}
-              onChange={(e) => setComentario(e.target.value)}
-              placeholder="Conta pra gente como foi (opcional)"
-              className="w-full p-3 rounded-xl text-sm font-medium resize-none"
+            <div
+              className="font-mono"
               style={{
-                background: BRAND.bege,
-                border: `1.5px solid ${BRAND.begeEsc}`,
-                minHeight: 72,
+                fontSize: 12,
+                color: BRAND.rosa,
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
               }}
-            />
-            <button
-              disabled={nota === 0 || avaliarPending}
-              onClick={() =>
-                avaliar({ pedidoId: pedido.id, nota, comentario: comentario || undefined })
-              }
-              className="mt-3 w-full py-3 rounded-xl font-bold text-white disabled:opacity-40"
-              style={{ background: BRAND.rosa }}
             >
-              Enviar avaliação
-            </button>
+              &#10022; acompanhamento
+            </div>
+            <h1
+              className="font-display"
+              style={{
+                fontSize: 'clamp(32px, 5vw, 52px)',
+                fontWeight: 700,
+                fontStyle: 'italic',
+                color: BRAND.marrom,
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+                margin: 0,
+              }}
+            >
+              pedido <span style={{ color: BRAND.rosa }}>#{pedido.id.slice(-6).toUpperCase()}</span>
+            </h1>
+            <div
+              className="font-mono"
+              style={{
+                fontSize: 11,
+                color: BRAND.marrom,
+                opacity: 0.5,
+                letterSpacing: '0.06em',
+                marginTop: 8,
+              }}
+            >
+              feito em {fmtDate(pedido.createdAt)}
+            </div>
           </div>
-        )}
 
-        {pedido.avaliacao && (
           <div
-            className="mt-6 bg-white rounded-3xl p-6"
-            style={{ border: `2px solid ${BRAND.begeEsc}` }}
+            className="font-mono"
+            style={{
+              padding: '8px 20px',
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              background: cancelado ? '#FFE8E8' : BRAND.rosa,
+              color: cancelado ? '#CC0000' : BRAND.branco,
+            }}
           >
-            <div className="font-display font-bold text-brand-marrom mb-2">
-              Sua avaliação
-            </div>
-            <div className="text-2xl">
-              {'⭐'.repeat(pedido.avaliacao.nota)}
-            </div>
-            {pedido.avaliacao.comentario && (
-              <div className="text-sm text-brand-marrom/70 mt-2 italic">
-                “{pedido.avaliacao.comentario}”
-              </div>
+            {cancelado ? 'cancelado' : STEPS[currentIdx]?.label ?? status}
+          </div>
+        </motion.div>
+
+        {/* Two-column layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+          {/* Left column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Timeline */}
+            {!cancelado && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 28,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 24,
+                  }}
+                >
+                  acompanhe a producao
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {STEPS.map((step, i) => {
+                    const done = i <= currentIdx;
+                    const active = i === currentIdx;
+                    const isLast = i === STEPS.length - 1;
+                    return (
+                      <motion.div
+                        key={step.key}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.08 }}
+                        style={{ display: 'flex', gap: 16 }}
+                      >
+                        {/* Dot + line */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            width: 24,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: active ? 24 : 16,
+                              height: active ? 24 : 16,
+                              borderRadius: '50%',
+                              background: done ? BRAND.rosa : BRAND.begeEsc,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: BRAND.branco,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              transition: 'all 0.3s',
+                              boxShadow: active ? `0 0 0 4px ${BRAND.rosa}33` : 'none',
+                            }}
+                          >
+                            {done && '\u2713'}
+                          </div>
+                          {!isLast && (
+                            <div
+                              style={{
+                                width: 2,
+                                height: 28,
+                                background: done && i < currentIdx ? BRAND.rosa : BRAND.begeEsc,
+                                transition: 'background 0.3s',
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Label */}
+                        <div
+                          style={{
+                            paddingBottom: isLast ? 0 : 16,
+                            fontSize: 14,
+                            fontWeight: active ? 800 : done ? 600 : 400,
+                            color: active ? BRAND.marrom : done ? BRAND.marrom : `${BRAND.marrom}88`,
+                            lineHeight: active ? '24px' : '16px',
+                          }}
+                        >
+                          {step.label}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* PIX payment - dark card */}
+            {pedido.pagamento?.status === 'PENDENTE' && pedido.pagamento?.pixCopiaCola && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                style={{
+                  background: BRAND.marrom,
+                  borderRadius: 24,
+                  padding: 28,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 16,
+                  }}
+                >
+                  pagamento via pix
+                </div>
+
+                {pedido.pagamento.pixQrCodeUrl && (
+                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                    <img
+                      src={pedido.pagamento.pixQrCodeUrl}
+                      alt="QR Code Pix"
+                      style={{
+                        width: 180,
+                        height: 180,
+                        borderRadius: 16,
+                        background: BRAND.branco,
+                        padding: 8,
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    background: `${BRAND.bege}18`,
+                    borderRadius: 16,
+                    padding: 14,
+                    fontSize: 11,
+                    color: BRAND.bege,
+                    opacity: 0.8,
+                    wordBreak: 'break-all',
+                    lineHeight: 1.5,
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {pedido.pagamento.pixCopiaCola}
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() =>
+                    navigator.clipboard.writeText(pedido.pagamento.pixCopiaCola)
+                  }
+                  style={{
+                    width: '100%',
+                    marginTop: 16,
+                    padding: '14px 24px',
+                    borderRadius: 999,
+                    background: BRAND.rosa,
+                    color: BRAND.branco,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  copiar codigo pix
+                </motion.button>
+              </motion.div>
+            )}
+
+            {/* Production window */}
+            {pedido.reservaProducao?.slot && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.25 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 24,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 12,
+                  }}
+                >
+                  janela de producao
+                </div>
+                <div style={{ fontSize: 14, color: BRAND.marrom, opacity: 0.8 }}>
+                  {fmtDate(pedido.reservaProducao.slot.horaInicio)} \u2014{' '}
+                  {fmtDate(pedido.reservaProducao.slot.horaFim)}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Delivery tracking */}
+            {pedido.entrega?.trackingCode && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 24,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 12,
+                  }}
+                >
+                  entrega
+                </div>
+                <div style={{ fontSize: 13, color: BRAND.marrom, opacity: 0.7 }}>
+                  codigo de rastreio:{' '}
+                  <span
+                    className="font-mono"
+                    style={{ fontWeight: 700, color: BRAND.marrom, opacity: 1 }}
+                  >
+                    {pedido.entrega.trackingCode}
+                  </span>
+                </div>
+                {pedido.entrega.previsaoEntrega && (
+                  <div style={{ fontSize: 13, color: BRAND.marrom, opacity: 0.7, marginTop: 4 }}>
+                    previsao: {fmtDate(pedido.entrega.previsaoEntrega)}
+                  </div>
+                )}
+              </motion.div>
             )}
           </div>
-        )}
 
-        <div className="mt-8 flex flex-col gap-3">
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Items card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              style={{
+                background: BRAND.branco,
+                borderRadius: 24,
+                padding: 28,
+                border: `1px solid ${BRAND.begeEsc}`,
+              }}
+            >
+              <div
+                className="font-mono"
+                style={{
+                  fontSize: 11,
+                  color: BRAND.rosa,
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: 20,
+                }}
+              >
+                itens do pedido
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pedido.itens?.map((item: any) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingBottom: 12,
+                      borderBottom: `1px solid ${BRAND.begeEsc}`,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, color: BRAND.marrom, fontSize: 14 }}>
+                        {item.quantidade}\u00d7 {item.produto?.nome}
+                      </div>
+                      {item.personalizacao && (
+                        <div
+                          className="font-mono"
+                          style={{
+                            fontSize: 10,
+                            color: BRAND.marrom,
+                            opacity: 0.5,
+                            marginTop: 4,
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {item.personalizacao}
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className="font-display"
+                      style={{ fontWeight: 700, color: BRAND.marrom, fontSize: 15 }}
+                    >
+                      {currency(Number(item.precoUnitario) * item.quantidade)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div
+                style={{
+                  marginTop: 16,
+                  paddingTop: 16,
+                  borderTop: `2px solid ${BRAND.begeEsc}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.marrom,
+                    opacity: 0.6,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  total
+                </div>
+                <div
+                  className="font-display"
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 800,
+                    color: BRAND.marrom,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {currency(pedido.valorTotal)}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Review section */}
+            {status === 'ENTREGUE' && !pedido.avaliacao && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 28,
+                  border: `2px solid ${BRAND.rosa}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 16,
+                  }}
+                >
+                  avaliacao
+                </div>
+                <div
+                  className="font-display"
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    fontStyle: 'italic',
+                    color: BRAND.marrom,
+                    marginBottom: 16,
+                  }}
+                >
+                  como foi sua experiencia?
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <motion.button
+                      key={n}
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setNota(n)}
+                      style={{
+                        fontSize: 28,
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        filter: n <= nota ? 'none' : 'grayscale(100%) opacity(0.3)',
+                        transition: 'filter 0.2s',
+                        padding: 4,
+                      }}
+                    >
+                      \u2b50
+                    </motion.button>
+                  ))}
+                </div>
+                <textarea
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                  placeholder="conta pra gente como foi (opcional)"
+                  style={{
+                    width: '100%',
+                    padding: '12px 18px',
+                    borderRadius: 16,
+                    border: `1.5px solid ${BRAND.begeEsc}`,
+                    background: BRAND.bege,
+                    fontSize: 13,
+                    color: BRAND.marrom,
+                    resize: 'none',
+                    minHeight: 72,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={nota === 0 || avaliarPending}
+                  onClick={() =>
+                    avaliar({ pedidoId: pedido.id, nota, comentario: comentario || undefined })
+                  }
+                  style={{
+                    width: '100%',
+                    marginTop: 12,
+                    padding: '14px 24px',
+                    borderRadius: 999,
+                    background: BRAND.rosa,
+                    color: BRAND.branco,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    border: 'none',
+                    cursor: nota === 0 || avaliarPending ? 'not-allowed' : 'pointer',
+                    opacity: nota === 0 || avaliarPending ? 0.4 : 1,
+                    transition: 'opacity 0.2s',
+                  }}
+                >
+                  enviar avaliacao
+                </motion.button>
+              </motion.div>
+            )}
+
+            {/* Existing review */}
+            {pedido.avaliacao && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 24,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 12,
+                  }}
+                >
+                  sua avaliacao
+                </div>
+                <div style={{ fontSize: 24 }}>
+                  {'\u2b50'.repeat(pedido.avaliacao.nota)}
+                </div>
+                {pedido.avaliacao.comentario && (
+                  <div
+                    className="font-display"
+                    style={{
+                      fontSize: 14,
+                      fontStyle: 'italic',
+                      color: BRAND.marrom,
+                      opacity: 0.7,
+                      marginTop: 10,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    "{pedido.avaliacao.comentario}"
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          style={{
+            marginTop: 32,
+            display: 'flex',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
           {['AGUARDANDO_PAGAMENTO', 'PAGO'].includes(status) && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 if (confirm('Tem certeza que quer cancelar?')) {
                   cancelar({ id: pedido.id, motivo: 'Cancelado pelo cliente' });
                 }
               }}
               disabled={cancelPending}
-              className="w-full py-3 rounded-xl font-bold"
               style={{
-                background: '#FFE8E8',
+                flex: 1,
+                padding: '16px 32px',
+                borderRadius: 999,
+                background: 'rgba(255,232,232,0.8)',
                 color: '#CC0000',
+                fontWeight: 700,
+                fontSize: 14,
                 border: '1.5px solid #FFB4B4',
+                cursor: cancelPending ? 'not-allowed' : 'pointer',
+                opacity: cancelPending ? 0.5 : 1,
               }}
             >
-              Cancelar pedido
-            </button>
+              cancelar pedido
+            </motion.button>
           )}
 
           {status === 'ENTREGUE' && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() =>
                 reorder(pedido.id, {
                   onSuccess: (novo: any) => navigate(`/pedidos/${novo.id}`),
                 })
               }
               disabled={reorderPending}
-              className="w-full py-3 rounded-xl font-bold text-white"
-              style={{ background: BRAND.rosa }}
+              style={{
+                flex: 1,
+                padding: '16px 32px',
+                borderRadius: 999,
+                background: BRAND.rosa,
+                color: BRAND.branco,
+                fontWeight: 700,
+                fontSize: 14,
+                border: 'none',
+                cursor: reorderPending ? 'not-allowed' : 'pointer',
+                opacity: reorderPending ? 0.5 : 1,
+                boxShadow: `0 8px 24px ${BRAND.rosa}44`,
+              }}
             >
-              {reorderPending ? 'Criando...' : 'Repetir este pedido'}
-            </button>
+              {reorderPending ? 'criando...' : 'repetir este pedido'}
+            </motion.button>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

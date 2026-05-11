@@ -18,6 +18,7 @@ const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Legal = lazy(() => import('./pages/Legal'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
+const GoogleCallback = lazy(() => import('./pages/Auth/GoogleCallback'));
 const AdminDash = lazy(() => import('./pages/admin/Dashboard'));
 const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminProd = lazy(() => import('./pages/admin/Production'));
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="/montar" element={<Wizard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
+            <Route path="/auth/google/success" element={<GoogleCallback />} />
             <Route path="/termos" element={<Legal kind="termos" />} />
             <Route path="/privacidade" element={<Legal kind="privacidade" />} />
 
