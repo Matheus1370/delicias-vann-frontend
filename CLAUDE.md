@@ -36,13 +36,18 @@ npm run lint       # ESLint
 - Mutations usam `useMutation` com invalidação de cache e toast
 
 ### Routing (App.tsx)
-- Rotas públicas: `/`, `/cardapio`, `/montar`, `/login`, `/cadastro`, `/termos`, `/privacidade`
+- Rotas públicas: `/`, `/cardapio`, `/montar`, `/login`, `/cadastro`, `/auth/google/success`, `/termos`, `/privacidade`
 - Rotas privadas (cliente): `/checkout`, `/pedidos`, `/pedidos/:id`, `/perfil`, `/assinaturas`
 - Rotas admin (OPERADOR/GERENTE/ADMINISTRADOR): `/admin/*`
 - `PrivateRoute` enforça auth + role. Todas as pages são lazy-loaded com `React.lazy()`
 
+### Auth com Google
+- `Login.tsx` e `Register.tsx` têm botão "entrar com Google" que envia o usuário para `${VITE_API_URL}/auth/google`
+- Backend faz o ciclo OAuth e redireciona para `/auth/google/success?token=...&user=...`
+- `pages/Auth/GoogleCallback.tsx` lê os query params, popula o auth store e redireciona por role
+
 ### Layout
-- `components/Layout.tsx` wrapa todas as páginas (navbar fixa com logo, nav, carrinho com badge, menu do usuário, hamburger mobile)
+- `components/Layout.tsx` wrapa todas as páginas (navbar com logo empilhado, nav pill com layoutId animation, scroll transparente→blur, cart badge animado, avatar dropdown, mobile slide-in com spring)
 - O Header mostra link "Admin" condicionalmente se o usuário tem role admin
 
 ## Brand & Styling
@@ -52,15 +57,37 @@ Cores definidas em `styles/brand.ts` e registradas no Tailwind como `brand-*`:
 | Token | Cor | Uso |
 |-------|-----|-----|
 | `brand-bege` | #F6EDE7 | Background principal |
-| `brand-rosa` | #ED71A2 | Accent/botões primários |
-| `brand-marrom` | #422716 | Texto |
 | `brand-begeEsc` | #E8D8CE | Bordas/divisores |
+| `brand-rosa` | #ED71A2 | Accent/botões primários |
+| `brand-rosaDeep` | #D84E86 | Hover/estado pressionado do rosa |
 | `brand-roxo` | #7684BF | Secundário |
+| `brand-roxoDeep` | #5E6BA6 | Hover/estado pressionado do roxo |
 | `brand-ciano` | #58C2E0 | Terciário |
+| `brand-marrom` | #422716 | Texto principal, painéis dark |
+| `brand-branco` | #FFFFFF | Branco da marca |
 
-Fontes: `font-display` (Playfair Display) para headings, `font-body` (Quicksand) para corpo.
+Fontes (carregadas via Google Fonts em `styles/globals.css`):
+- `font-display` — **Fraunces** (serif), para headings grandes e tipografia de marca
+- `font-body` — **Quicksand** (sans), para corpo
+- `font-mono` — **Space Grotesk**, para labels/eyebrow/microtipografia
 
-Animações custom no tailwind.config.ts: `drip`, `float`, `marquee`, `spin-slow`, `sprinkle`.
+### BrandElements (`components/BrandElements.tsx`)
+Componentes visuais reutilizáveis para manter consistência do redesign. Importar daqui em vez de re-implementar:
+- `Star11` — estrela de 11 pontas (decorativa, hero, checkout summary)
+- `ChocolateBlob` — blob SVG marrom orgânico de fundo da home
+- `Sticker` — adesivo rotacionado (sweet/fatia)
+- `Pill` — badge arredondado com variantes de cor
+- `Drip` — gota animada (usa keyframe `drip`)
+- `SprinkleArc` — arco de granulado decorativo
+- `Marquee` — esteira horizontal infinita (usa keyframe `marquee`)
+- `RoundCake` — ilustração SVG do bolo no painel lateral do Wizard
+
+Animações custom no `tailwind.config.ts`: `drip`, `float`, `marquee`, `spin-slow`, `sprinkle`.
+
+## Custom slash commands (`.claude/commands/`)
+- `/frontend` — gera UI seguindo o padrão de marca
+- `/component` — cria componente alinhado com BrandElements
+- `/page` — esqueleto de página com Layout e brand tokens
 
 ## Conventions
 
