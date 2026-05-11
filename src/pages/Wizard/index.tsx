@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useProduct, useAdicionais, type AdicionalItem } from '../../hooks/useProducts';
+import { useCreateRascunhoWhatsApp } from '../../hooks/useOrders';
+import { useAuthStore } from '../../store/auth.store';
 import { useCartStore, type Ocasiao } from '../../store/cart.store';
 import { BRAND } from '../../styles/brand';
 import { RoundCake, Star11 } from '../../components/BrandElements';
+import { gerarLinkWhatsApp } from '../../utils/whatsapp';
 
 /* ─── Types ─── */
 interface OpcaoMontagem {
@@ -64,11 +67,16 @@ function extrairKgDoLabel(label: string): number | null {
   return parseFloat(m[1].replace(',', '.'));
 }
 
+const WHATSAPP_NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER as string) ?? '5511982813152';
+
 export default function WizardPage() {
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
   const setOcasiaoGlobal = useCartStore((s) => s.setOcasiao);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: produto, isLoading } = useProduct('bolo-personalizado');
+  const { mutateAsync: criarRascunho, isPending: rascunhoSalvando } = useCreateRascunhoWhatsApp();
+  const [enviandoWhatsApp, setEnviandoWhatsApp] = useState(false);
 
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState<Record<string, string>>({});
@@ -278,6 +286,60 @@ export default function WizardPage() {
     setOcasiaoGlobal(pessoasNum ?? null, ocasiao);
     toast.success('Bolo adicionado ao carrinho!');
     setShowAdded(true);
+  };
+
+  const handleWhatsApp = async () => {
+    if (!produto) return;
+    setEnviandoWhatsApp(true);
+    try {
+      const parts = steps.map((st) => sel[st.key]).filter(Boolean);
+      const nome = parts.length > 0 ? `${produto.nome} (${parts.join(' · ')})` : produto.nome;
+      const pessoasNum = typeof numeroPessoas === 'number' ? numeroPessoas : undefined;
+
+      let pedidoId: string | undefined;
+      if (isAuthenticated) {
+        const itensPayload = [
+          {
+            produtoId: produto.id,
+            quantidade: 1,
+            opcoesEscolhidas: sel,
+            personalizacao: personalizacao || undefined,
+          },
+          ...adicionaisSelecionados.map((it) => ({
+            produtoId: it.id,
+            quantidade: it.quantidade,
+          })),
+        ];
+        try {
+          const rascunho = await criarRascunho({
+            itens: itensPayload,
+            numeroPessoas: pessoasNum,
+            ocasiao: ocasiao ?? undefined,
+            observacoes: personalizacao || undefined,
+          });
+          pedidoId = rascunho.id;
+        } catch {
+          // ja exibiu toast — segue abrindo wa.me sem pedidoId
+        }
+      }
+
+      const url = gerarLinkWhatsApp(WHATSAPP_NUMBER, {
+        produtoNome: nome,
+        numeroPessoas: pessoasNum,
+        ocasiao: ocasiao ?? undefined,
+        opcoesEscolhidas: sel,
+        personalizacao: personalizacao || undefined,
+        adicionais: adicionaisSelecionados.map((it) => ({
+          nome: it.nome,
+          quantidade: it.quantidade,
+        })),
+        valorTotal: precoTotal + adicionaisSubtotal,
+        pedidoId,
+      });
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setEnviandoWhatsApp(false);
+    }
   };
 
   /* ─── Loading ─── */
@@ -1083,7 +1145,7 @@ export default function WizardPage() {
               </AnimatePresence>
 
               {/* ── Navigation ── */}
-              <div style={{ display: 'flex', gap: 12, marginTop: 36 }}>
+              <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap' }}>
                 {step > 0 && (
                   <motion.button
                     whileHover={{ scale: 1.03 }}
@@ -1121,7 +1183,42 @@ export default function WizardPage() {
                     <>próximo <ArrowRight size={16} /></>
                   )}
                 </motion.button>
+                {isResumoStep && (
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleWhatsApp}
+                    disabled={enviandoWhatsApp || rascunhoSalvando}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '14px 24px', borderRadius: 999,
+                      background: '#25D366', border: 'none',
+                      color: BRAND.branco, fontWeight: 700, fontSize: 14,
+                      cursor: enviandoWhatsApp ? 'wait' : 'pointer',
+                      opacity: enviandoWhatsApp ? 0.7 : 1,
+                      boxShadow: '0 4px 16px rgba(37,211,102,0.32)',
+                      transition: 'opacity 0.2s',
+                    }}
+                    title="Continuar pelo WhatsApp com o resumo deste pedido"
+                  >
+                    <MessageCircle size={16} />
+                    {enviandoWhatsApp ? 'abrindo…' : 'continuar pelo whatsapp'}
+                  </motion.button>
+                )}
               </div>
+              {isResumoStep && (
+                <p
+                  className="font-mono"
+                  style={{
+                    marginTop: 12,
+                    fontSize: 11,
+                    color: `${BRAND.marrom}88`,
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  prefere fechar pelo whatsapp? a gente leva o resumo deste pedido pra conversa{isAuthenticated ? ' e registra como lead' : ''}.
+                </p>
+              )}
             </div>
 
             {/* ── Right: Preview Panel ── */}

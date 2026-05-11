@@ -45,6 +45,25 @@ export function useCreateOrder() {
   });
 }
 
+export function useCreateRascunhoWhatsApp() {
+  return useMutation({
+    mutationFn: (data: any) =>
+      api.post('/orders/rascunho-whatsapp', data).then((r) => r.data),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message ?? 'Erro ao salvar rascunho';
+      toast.error(msg);
+    },
+  });
+}
+
+export function useRascunhosWhatsApp() {
+  return useQuery({
+    queryKey: ['rascunhos-whatsapp'],
+    queryFn: () => api.get('/orders/rascunhos-whatsapp').then((r) => r.data),
+    refetchInterval: 30 * 1000,
+  });
+}
+
 export function useReorder() {
   const qc = useQueryClient();
   return useMutation({
