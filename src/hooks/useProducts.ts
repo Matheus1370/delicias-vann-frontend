@@ -33,6 +33,40 @@ export function useUpsellItems() {
   });
 }
 
+export interface AdicionalItem {
+  id: string;
+  nome: string;
+  slug: string;
+  descricao?: string;
+  precoVenda: string | number;
+  pontosEsforco: number;
+  imagemUrl?: string;
+  unidade: 'PORCAO' | 'UNIDADE';
+  quantidadeSugerida: number;
+}
+
+export interface AdicionaisResponse {
+  itens: AdicionalItem[];
+  meta: {
+    numeroPessoas: number | null;
+    docinhosPorPessoa: number;
+    totalSugerido: number;
+  };
+}
+
+export function useAdicionais(numeroPessoas?: number | null) {
+  return useQuery<AdicionaisResponse>({
+    queryKey: ['adicionais', numeroPessoas],
+    queryFn: () =>
+      api
+        .get('/catalog/adicionais', {
+          params: numeroPessoas ? { numeroPessoas } : undefined,
+        })
+        .then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useProductReviews(produtoId?: string) {
   return useQuery({
     queryKey: ['product-reviews', produtoId],

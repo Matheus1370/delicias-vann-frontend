@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users } from 'lucide-react';
-import { useProduct } from '../../hooks/useProducts';
+import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus } from 'lucide-react';
+import { useProduct, useAdicionais, type AdicionalItem } from '../../hooks/useProducts';
 import { useCartStore, type Ocasiao } from '../../store/cart.store';
 import { BRAND } from '../../styles/brand';
 import { RoundCake, Star11 } from '../../components/BrandElements';
@@ -30,6 +30,7 @@ const STEP_ICON: Record<string, string> = {
   recheio: '🍫',
   cobertura: '✨',
   mensagem: '💌',
+  adicionais: '🍬',
   resumo: '✅',
 };
 
@@ -76,11 +77,28 @@ export default function WizardPage() {
   const [refImages, setRefImages] = useState<{ file: File; preview: string }[]>([]);
   const [numeroPessoas, setNumeroPessoas] = useState<number | ''>('');
   const [ocasiao, setOcasiao] = useState<Ocasiao | null>(null);
+  const [adicionais, setAdicionais] = useState<Record<string, number>>({});
+  const [adicionaisInicializados, setAdicionaisInicializados] = useState(false);
 
   const kgSugerido = useMemo(() => {
     if (!numeroPessoas || !ocasiao || numeroPessoas <= 0) return null;
     return calcularKgSugerido(numeroPessoas, ocasiao);
   }, [numeroPessoas, ocasiao]);
+
+  const pessoasParaQuery = typeof numeroPessoas === 'number' ? numeroPessoas : undefined;
+  const { data: adicionaisResp } = useAdicionais(pessoasParaQuery);
+  const adicionaisDisponiveis = adicionaisResp?.itens ?? [];
+
+  /* Pré-popula quantidades sugeridas na primeira vez que carrega */
+  useEffect(() => {
+    if (adicionaisDisponiveis.length === 0 || adicionaisInicializados) return;
+    const inicial: Record<string, number> = {};
+    for (const item of adicionaisDisponiveis) {
+      inicial[item.id] = item.quantidadeSugerida ?? 0;
+    }
+    setAdicionais(inicial);
+    setAdicionaisInicializados(true);
+  }, [adicionaisDisponiveis, adicionaisInicializados]);
 
   /* ─── Parse opcoesMontagem into ordered steps ─── */
   const steps = useMemo(() => {
@@ -110,6 +128,7 @@ export default function WizardPage() {
     const keys: string[] = ['pessoas'];
     keys.push(...steps.map((s) => s.key));
     keys.push('mensagem');
+    keys.push('adicionais');
     keys.push('resumo');
     return keys;
   }, [steps]);
@@ -119,15 +138,34 @@ export default function WizardPage() {
   const cur = steps.find((s) => s.key === currentKey);
   const isPessoasStep = currentKey === 'pessoas';
   const isMessageStep = currentKey === 'mensagem';
+  const isAdicionaisStep = currentKey === 'adicionais';
   const isResumoStep = currentKey === 'resumo';
   const isLastStep = step === totalSteps - 1;
   const isTamanhoStep = currentKey === 'tamanho';
   const pessoasPreenchido = !!numeroPessoas && !!ocasiao && Number(numeroPessoas) > 0;
   const canAdvance =
     isMessageStep ||
+    isAdicionaisStep ||
     isResumoStep ||
     (isPessoasStep && pessoasPreenchido) ||
     (cur && sel[cur.key]);
+
+  /* Subtotal dos adicionais selecionados */
+  const adicionaisSelecionados = useMemo(() => {
+    return adicionaisDisponiveis
+      .filter((it) => (adicionais[it.id] ?? 0) > 0)
+      .map((it) => ({
+        ...it,
+        quantidade: adicionais[it.id],
+      }));
+  }, [adicionaisDisponiveis, adicionais]);
+
+  const adicionaisSubtotal = useMemo(() => {
+    return adicionaisSelecionados.reduce(
+      (acc, it) => acc + Number(it.precoVenda) * it.quantidade,
+      0,
+    );
+  }, [adicionaisSelecionados]);
 
   /** No passo de tamanho, encontra a opção sugerida com base no kg ideal. */
   const sugestaoTamanhoLabel = useMemo(() => {
@@ -172,8 +210,8 @@ export default function WizardPage() {
   const handleNext = () => {
     if (isResumoStep) {
       handleAddToCart();
-    } else if (isMessageStep) {
-      // mensagem é sempre opcional, pode avançar
+    } else if (isMessageStep || isAdicionaisStep) {
+      // mensagem e adicionais são sempre opcionais, pode avançar
       setStep((s) => s + 1);
     } else if (isPessoasStep) {
       if (!pessoasPreenchido) {
@@ -186,6 +224,18 @@ export default function WizardPage() {
     } else {
       toast.error('Selecione uma opção para continuar');
     }
+  };
+
+  const ajustarAdicional = (id: string, delta: number) => {
+    setAdicionais((prev) => {
+      const atual = prev[id] ?? 0;
+      const novo = Math.max(0, atual + delta);
+      return { ...prev, [id]: novo };
+    });
+  };
+
+  const setAdicional = (id: string, quantidade: number) => {
+    setAdicionais((prev) => ({ ...prev, [id]: Math.max(0, quantidade) }));
   };
 
   const handleAddToCart = () => {
@@ -211,6 +261,19 @@ export default function WizardPage() {
       numeroPessoas: pessoasNum,
       ocasiao: ocasiao ?? undefined,
     });
+
+    // Adiciona cada ADICIONAL escolhido como item separado do carrinho
+    for (const it of adicionaisSelecionados) {
+      addItem({
+        produtoId: it.id,
+        nome: it.nome,
+        precoUnitario: Number(it.precoVenda),
+        pontosEsforco: it.pontosEsforco,
+        quantidade: it.quantidade,
+        imagemUrl: it.imagemUrl,
+      });
+    }
+
     // Persiste no carrinho global pra propagar ao backend no checkout
     setOcasiaoGlobal(pessoasNum ?? null, ocasiao);
     toast.success('Bolo adicionado ao carrinho!');
@@ -312,6 +375,8 @@ export default function WizardPage() {
                       <>tudo <span style={{ color: BRAND.rosa }}>certo</span>?</>
                     ) : isMessageStep ? (
                       <><span style={{ color: BRAND.rosa }}>mensagem</span> & referências</>
+                    ) : isAdicionaisStep ? (
+                      <>quer levar <span style={{ color: BRAND.rosa }}>docinhos</span>?</>
                     ) : isPessoasStep ? (
                       <>pra <span style={{ color: BRAND.rosa }}>quantas pessoas</span>?</>
                     ) : (
@@ -529,6 +594,27 @@ export default function WizardPage() {
                           );
                         })}
 
+                        {/* Adicionais escolhidos */}
+                        {adicionaisSelecionados.length > 0 && (
+                          <div style={{ padding: '14px 0', borderBottom: `1px dashed ${BRAND.begeEsc}` }}>
+                            <span className="font-mono" style={{ fontSize: 10, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                              🍬 adicionais
+                            </span>
+                            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {adicionaisSelecionados.map((it) => (
+                                <div key={it.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                                  <span style={{ color: BRAND.marrom }}>
+                                    <strong>{it.quantidade}×</strong> {it.nome}
+                                  </span>
+                                  <span className="font-mono" style={{ color: BRAND.rosa, fontWeight: 700 }}>
+                                    + R$ {(Number(it.precoVenda) * it.quantidade).toFixed(2).replace('.', ',')}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Mensagem */}
                         <div style={{ padding: '14px 0', borderBottom: refImages.length > 0 ? `1px dashed ${BRAND.begeEsc}` : 'none' }}>
                           <span className="font-mono" style={{ fontSize: 10, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -562,14 +648,29 @@ export default function WizardPage() {
                       {/* Total destacado */}
                       <div style={{
                         background: BRAND.marrom, borderRadius: 20, padding: '20px 24px',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        display: 'flex', flexDirection: 'column', gap: 6,
                       }}>
-                        <span className="font-mono" style={{ fontSize: 12, color: BRAND.bege, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                          total do bolo
-                        </span>
-                        <span className="font-display" style={{ fontSize: 36, fontWeight: 800, color: BRAND.rosa }}>
-                          R$ {precoTotal.toFixed(2).replace('.', ',')}
-                        </span>
+                        {adicionaisSubtotal > 0 && (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: BRAND.bege, opacity: 0.7 }}>
+                              <span>bolo</span>
+                              <span>R$ {precoTotal.toFixed(2).replace('.', ',')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: BRAND.bege, opacity: 0.7 }}>
+                              <span>adicionais</span>
+                              <span>R$ {adicionaisSubtotal.toFixed(2).replace('.', ',')}</span>
+                            </div>
+                            <div style={{ borderTop: `1px dashed ${BRAND.bege}33`, marginTop: 4 }} />
+                          </>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className="font-mono" style={{ fontSize: 12, color: BRAND.bege, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            total
+                          </span>
+                          <span className="font-display" style={{ fontSize: 36, fontWeight: 800, color: BRAND.rosa }}>
+                            R$ {(precoTotal + adicionaisSubtotal).toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
                       </div>
 
                       <p className="font-mono" style={{ fontSize: 11, color: BRAND.marrom + '66', textAlign: 'center', letterSpacing: '0.05em' }}>
@@ -697,6 +798,187 @@ export default function WizardPage() {
                           {refImages.length}/5 imagens · jpg, png, webp
                         </div>
                       </div>
+                    </div>
+                  ) : isAdicionaisStep ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                      <p style={{ fontSize: 15, color: BRAND.marrom + 'aa', lineHeight: 1.55, margin: 0 }}>
+                        {adicionaisResp?.meta.totalSugerido && adicionaisResp.meta.totalSugerido > 0 ? (
+                          <>
+                            Pra {numeroPessoas} pessoas a gente sugere{' '}
+                            <strong style={{ color: BRAND.rosa }}>
+                              {adicionaisResp.meta.totalSugerido} docinhos
+                            </strong>{' '}
+                            ({adicionaisResp.meta.docinhosPorPessoa}/pessoa). Pode ajustar
+                            ou pular essa etapa.
+                          </>
+                        ) : (
+                          <>
+                            Acompanhamentos opcionais pro seu bolo. Pode pular se não
+                            quiser nada além do bolo.
+                          </>
+                        )}
+                      </p>
+
+                      {adicionaisDisponiveis.length === 0 ? (
+                        <div
+                          style={{
+                            padding: 32,
+                            borderRadius: 20,
+                            background: BRAND.branco,
+                            border: `1px dashed ${BRAND.begeEsc}`,
+                            textAlign: 'center',
+                            color: `${BRAND.marrom}99`,
+                            fontSize: 14,
+                          }}
+                        >
+                          Sem adicionais cadastrados no momento — siga pro resumo.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                          {adicionaisDisponiveis.map((it: AdicionalItem, i: number) => {
+                            const qtd = adicionais[it.id] ?? 0;
+                            const ativo = qtd > 0;
+                            const ehPorcao = it.unidade === 'PORCAO';
+                            const subtotal = Number(it.precoVenda) * qtd;
+                            return (
+                              <motion.div
+                                key={it.id}
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                style={{
+                                  padding: 18,
+                                  borderRadius: 18,
+                                  background: ativo ? `${BRAND.rosa}08` : BRAND.branco,
+                                  border: `2px solid ${ativo ? BRAND.rosa : BRAND.begeEsc}`,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 12,
+                                  transition: 'border-color 0.2s, background 0.2s',
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div className="font-display" style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.15, color: BRAND.marrom }}>
+                                      {it.nome}
+                                    </div>
+                                    {it.descricao && (
+                                      <div style={{ fontSize: 12, color: `${BRAND.marrom}88`, marginTop: 4, lineHeight: 1.4 }}>
+                                        {it.descricao}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {ehPorcao && it.quantidadeSugerida > 0 && (
+                                    <div
+                                      className="font-mono"
+                                      style={{
+                                        fontSize: 9,
+                                        fontWeight: 700,
+                                        padding: '3px 8px',
+                                        borderRadius: 999,
+                                        background: `${BRAND.rosa}15`,
+                                        color: BRAND.rosa,
+                                        letterSpacing: '0.08em',
+                                        textTransform: 'uppercase',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      sugestão {it.quantidadeSugerida}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                  <div className="font-mono" style={{ fontSize: 12, color: `${BRAND.marrom}77` }}>
+                                    R$ {Number(it.precoVenda).toFixed(2).replace('.', ',')}
+                                    {ehPorcao ? ' / un' : ''}
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => ajustarAdicional(it.id, -1)}
+                                      disabled={qtd === 0}
+                                      style={{
+                                        width: 32, height: 32, borderRadius: 999,
+                                        border: `1.5px solid ${BRAND.begeEsc}`,
+                                        background: BRAND.branco,
+                                        color: BRAND.marrom,
+                                        cursor: qtd === 0 ? 'not-allowed' : 'pointer',
+                                        opacity: qtd === 0 ? 0.3 : 1,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      }}
+                                      aria-label="Diminuir"
+                                    >
+                                      <Minus size={14} />
+                                    </button>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={999}
+                                      value={qtd}
+                                      onChange={(e) => setAdicional(it.id, parseInt(e.target.value || '0', 10))}
+                                      style={{
+                                        width: 56, padding: '6px 8px', borderRadius: 10,
+                                        border: `1.5px solid ${ativo ? BRAND.rosa : BRAND.begeEsc}`,
+                                        background: BRAND.branco,
+                                        fontFamily: 'Space Grotesk, monospace',
+                                        fontSize: 14, fontWeight: 700,
+                                        color: BRAND.marrom,
+                                        textAlign: 'center', outline: 'none',
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => ajustarAdicional(it.id, 1)}
+                                      style={{
+                                        width: 32, height: 32, borderRadius: 999,
+                                        border: `1.5px solid ${ativo ? BRAND.rosa : BRAND.begeEsc}`,
+                                        background: ativo ? BRAND.rosa : BRAND.branco,
+                                        color: ativo ? BRAND.bege : BRAND.marrom,
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      }}
+                                      aria-label="Aumentar"
+                                    >
+                                      <Plus size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {ativo && (
+                                  <div className="font-mono" style={{ fontSize: 11, color: BRAND.rosa, fontWeight: 700, textAlign: 'right' }}>
+                                    + R$ {subtotal.toFixed(2).replace('.', ',')}
+                                  </div>
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Subtotal de adicionais */}
+                      {adicionaisSubtotal > 0 && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            padding: '14px 18px',
+                            borderRadius: 14,
+                            background: BRAND.marrom,
+                            color: BRAND.bege,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <span className="font-mono" style={{ fontSize: 11, opacity: 0.7, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                            adicionais
+                          </span>
+                          <span className="font-display" style={{ fontSize: 20, fontWeight: 800, color: BRAND.rosa }}>
+                            + R$ {adicionaisSubtotal.toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : cur ? (
                     <>
@@ -833,7 +1115,7 @@ export default function WizardPage() {
                 >
                   {isResumoStep ? (
                     <><Sparkles size={16} /> adicionar ao carrinho</>
-                  ) : isMessageStep ? (
+                  ) : isAdicionaisStep ? (
                     <>ver resumo <ArrowRight size={16} /></>
                   ) : (
                     <>próximo <ArrowRight size={16} /></>
