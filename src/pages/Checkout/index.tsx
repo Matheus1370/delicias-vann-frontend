@@ -9,6 +9,7 @@ import { useValidarCupom } from '../../hooks/useCupons';
 import { useConfiguracoesEntrega, type ConfiguracaoEntrega } from '../../hooks/useEntrega';
 import { useSaldoCredito } from '../../hooks/useCredito';
 import { trackFunil } from '../../hooks/useFunilTracking';
+import { getUTMSalvos } from '../../hooks/useUTM';
 import { useMe } from '../../hooks/useUser';
 import { BRAND } from '../../styles/brand';
 import { Star11, Pill, ProductPlaceholder } from '../../components/BrandElements';
@@ -237,6 +238,7 @@ export default function Checkout() {
         numeroPessoas: pedidoNumeroPessoas,
         ocasiao: pedidoOcasiao,
         usarCredito,
+        ...getUTMSalvos(),
       } as any,
       {
         onSuccess: (pedido) => {

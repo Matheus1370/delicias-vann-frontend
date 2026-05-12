@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { useCartStore } from '../store/cart.store';
+import { useUTM } from '../hooks/useUTM';
 import { BRAND } from '../styles/brand';
 
 const ADMIN_ROLES = ['OPERADOR', 'GERENTE', 'ADMINISTRADOR'];
@@ -862,6 +863,7 @@ function Footer() {
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  useUTM(); // captura UTMs da URL e persiste em sessionStorage
   return (
     <div className="min-h-screen flex flex-col" style={{ background: BRAND.bege }}>
       <Header />
