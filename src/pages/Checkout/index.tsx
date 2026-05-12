@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -15,6 +15,17 @@ const MODALIDADES = [
   { value: 'MOTOBOY_LOCAL', label: 'Motoboy (ate 10km)', frete: 15 },
   { value: 'UBER_DIRECT', label: 'Uber Direct', frete: 22 },
 ];
+
+/** Calcula intersecao de modalidadesPermitidas de todos os itens do carrinho.
+ *  Item sem o campo é tratado como permissivo (aceita qualquer modalidade). */
+function calcularModalidadesPermitidas(items: { modalidadesPermitidas?: string[] }[]): Set<string> {
+  return items.reduce<Set<string> | null>((acc, item) => {
+    const permitidas = item.modalidadesPermitidas;
+    if (!permitidas || permitidas.length === 0) return acc;
+    if (acc === null) return new Set(permitidas);
+    return new Set([...acc].filter((m) => permitidas.includes(m)));
+  }, null) ?? new Set(MODALIDADES.map((m) => m.value));
+}
 
 const currency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
@@ -33,7 +44,20 @@ export default function Checkout() {
   const { mutate: criar, isPending } = useCreateOrder();
   const { mutate: validarCupom, data: cupomData, isPending: validandoCupom } = useValidarCupom();
 
-  const [modalidade, setModalidade] = useState(MODALIDADES[0].value);
+  const modalidadesPermitidas = useMemo(
+    () => calcularModalidadesPermitidas(items),
+    [items],
+  );
+  const primeiraPermitida =
+    MODALIDADES.find((m) => modalidadesPermitidas.has(m.value))?.value ?? MODALIDADES[0].value;
+  const [modalidade, setModalidade] = useState(primeiraPermitida);
+
+  /* Se modalidade selecionada deixar de ser permitida (ex: item adicionado), troca pra primeira valida */
+  useEffect(() => {
+    if (!modalidadesPermitidas.has(modalidade)) {
+      setModalidade(primeiraPermitida);
+    }
+  }, [modalidadesPermitidas, modalidade, primeiraPermitida]);
   const [observacoes, setObservacoes] = useState('');
   const [cupom, setCupom] = useState('');
   const [dataAgendamento, setDataAgendamento] = useState('');
@@ -394,35 +418,91 @@ export default function Checkout() {
 
               {/* Delivery modality */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                {MODALIDADES.map((m) => (
-                  <label
-                    key={m.value}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: 12,
-                      borderRadius: 14,
-                      cursor: 'pointer',
-                      background: modalidade === m.value ? BRAND.rosa + '11' : BRAND.bege,
-                      border: `1.5px solid ${modalidade === m.value ? BRAND.rosa : BRAND.begeEsc}`,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <input
-                        type="radio"
-                        name="modalidade"
-                        checked={modalidade === m.value}
-                        onChange={() => setModalidade(m.value)}
-                      />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom }}>{m.label}</span>
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom, opacity: 0.6 }}>
-                      {m.frete === 0 ? 'gratis' : currency(m.frete)}
-                    </span>
-                  </label>
-                ))}
+                {MODALIDADES.map((m) => {
+                  const liberada = modalidadesPermitidas.has(m.value);
+                  const itemIncompativel = !liberada
+                    ? items.find(
+                        (i) =>
+                          i.modalidadesPermitidas &&
+                          !i.modalidadesPermitidas.includes(m.value),
+                      )
+                    : null;
+                  return (
+                    <label
+                      key={m.value}
+                      title={
+                        !liberada && itemIncompativel
+                          ? `${itemIncompativel.nome} não pode ser despachado por essa modalidade`
+                          : undefined
+                      }
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: 12,
+                        borderRadius: 14,
+                        cursor: liberada ? 'pointer' : 'not-allowed',
+                        opacity: liberada ? 1 : 0.45,
+                        background:
+                          modalidade === m.value && liberada
+                            ? BRAND.rosa + '11'
+                            : BRAND.bege,
+                        border: `1.5px solid ${
+                          modalidade === m.value && liberada ? BRAND.rosa : BRAND.begeEsc
+                        }`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <input
+                          type="radio"
+                          name="modalidade"
+                          disabled={!liberada}
+                          checked={modalidade === m.value}
+                          onChange={() => setModalidade(m.value)}
+                        />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom }}>
+                          {m.label}
+                        </span>
+                        {!liberada && itemIncompativel && (
+                          <span
+                            className="font-mono"
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              background: '#FFE8E8',
+                              color: '#CC0000',
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            não disponível
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom, opacity: 0.6 }}>
+                        {m.frete === 0 ? 'gratis' : currency(m.frete)}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
+              {modalidadesPermitidas.size === 0 && (
+                <div
+                  style={{
+                    marginBottom: 16,
+                    padding: 12,
+                    borderRadius: 12,
+                    background: '#FFE8E8',
+                    border: '1.5px solid #CC0000',
+                    fontSize: 12,
+                    color: '#990000',
+                  }}
+                >
+                  Nenhuma modalidade compatível com todos os itens do carrinho. Considere remover algum item.
+                </div>
+              )}
 
               {/* Schedule */}
               <div style={{ marginBottom: 16 }}>

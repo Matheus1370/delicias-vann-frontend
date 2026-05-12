@@ -41,6 +41,7 @@ export interface AdicionalItem {
   precoVenda: string | number;
   pontosEsforco: number;
   imagemUrl?: string;
+  modalidadesPermitidas?: string[];
   unidade: 'PORCAO' | 'UNIDADE';
   quantidadeSugerida: number;
 }

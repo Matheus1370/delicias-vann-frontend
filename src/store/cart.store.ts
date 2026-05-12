@@ -14,6 +14,8 @@ export interface CartItem {
   personalizacao?: string;
   numeroPessoas?: number;
   ocasiao?: Ocasiao;
+  /** Modalidades de entrega aceitas para este item (intersect no checkout). */
+  modalidadesPermitidas?: string[];
 }
 
 interface CartState {

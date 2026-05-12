@@ -322,6 +322,7 @@ export default function WizardPage() {
       personalizacao: personalizacao || undefined,
       numeroPessoas: pessoasNum,
       ocasiao: ocasiao ?? undefined,
+      modalidadesPermitidas: produto.modalidadesPermitidas,
     });
 
     // Adiciona cada ADICIONAL escolhido como item separado do carrinho
@@ -333,6 +334,7 @@ export default function WizardPage() {
         pontosEsforco: it.pontosEsforco,
         quantidade: it.quantidade,
         imagemUrl: it.imagemUrl,
+        modalidadesPermitidas: it.modalidadesPermitidas,
       });
     }
 
