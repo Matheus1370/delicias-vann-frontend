@@ -28,6 +28,7 @@ const AdminReports = lazy(() => import('./pages/admin/Reports'));
 const AdminCoupons = lazy(() => import('./pages/admin/Coupons'));
 const AdminBalcao = lazy(() => import('./pages/admin/Balcao'));
 const AdminProductionSheet = lazy(() => import('./pages/admin/ProductionSheet'));
+const AdminRegras = lazy(() => import('./pages/admin/Regras'));
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -187,6 +188,14 @@ export default function App() {
               element={
                 <PrivateRoute roles={GERENTE_ROLES}>
                   <AdminReports />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/regras"
+              element={
+                <PrivateRoute roles={GERENTE_ROLES}>
+                  <AdminRegras />
                 </PrivateRoute>
               }
             />

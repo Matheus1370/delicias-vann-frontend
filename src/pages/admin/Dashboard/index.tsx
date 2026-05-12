@@ -10,6 +10,7 @@ const CARDS = [
   { to: '/admin/estoque', titulo: 'Estoque', descricao: 'Insumos e reposicao', icon: '📦' },
   { to: '/admin/cupons', titulo: 'Cupons', descricao: 'Campanhas e promocoes', icon: '🏷️' },
   { to: '/admin/relatorios', titulo: 'Relatorios', descricao: 'Vendas e indicadores', icon: '📊' },
+  { to: '/admin/regras', titulo: 'Regras', descricao: 'Combinacoes inviaveis e avisos', icon: '🛡️' },
 ];
 
 export default function AdminDashboard() {

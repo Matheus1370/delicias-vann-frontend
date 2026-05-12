@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus, MessageCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
 import { useProduct, useAdicionais, type AdicionalItem } from '../../hooks/useProducts';
 import { useCreateRascunhoWhatsApp } from '../../hooks/useOrders';
+import { useAvaliarRegras, type Violacao } from '../../hooks/useRegras';
 import { useAuthStore } from '../../store/auth.store';
 import { useCartStore, type Ocasiao } from '../../store/cart.store';
 import { BRAND } from '../../styles/brand';
@@ -76,7 +77,10 @@ export default function WizardPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: produto, isLoading } = useProduct('bolo-personalizado');
   const { mutateAsync: criarRascunho, isPending: rascunhoSalvando } = useCreateRascunhoWhatsApp();
+  const { mutateAsync: avaliarRegras, isPending: avaliandoRegras } = useAvaliarRegras();
   const [enviandoWhatsApp, setEnviandoWhatsApp] = useState(false);
+  const [violacoes, setViolacoes] = useState<Violacao[]>([]);
+  const [avisoConfirmado, setAvisoConfirmado] = useState(false);
 
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState<Record<string, string>>({});
@@ -107,6 +111,20 @@ export default function WizardPage() {
     setAdicionais(inicial);
     setAdicionaisInicializados(true);
   }, [adicionaisDisponiveis, adicionaisInicializados]);
+
+  const violacoesBloqueio = useMemo(
+    () => violacoes.filter((v) => v.nivel === 'BLOQUEAR'),
+    [violacoes],
+  );
+  const violacoesAviso = useMemo(
+    () => violacoes.filter((v) => v.nivel === 'AVISAR'),
+    [violacoes],
+  );
+
+  /* Reset confirmacao de aviso quando seleções mudam */
+  useEffect(() => {
+    setAvisoConfirmado(false);
+  }, [sel, numeroPessoas, ocasiao]);
 
   /* ─── Parse opcoesMontagem into ordered steps ─── */
   const steps = useMemo(() => {
@@ -151,10 +169,35 @@ export default function WizardPage() {
   const isLastStep = step === totalSteps - 1;
   const isTamanhoStep = currentKey === 'tamanho';
   const pessoasPreenchido = !!numeroPessoas && !!ocasiao && Number(numeroPessoas) > 0;
+  const resumoBloqueado =
+    isResumoStep &&
+    (violacoesBloqueio.length > 0 ||
+      (violacoesAviso.length > 0 && !avisoConfirmado));
+
+  /* Avalia regras ao entrar no resumo */
+  useEffect(() => {
+    if (!produto || currentKey !== 'resumo') return;
+    let cancelado = false;
+    avaliarRegras({
+      produtoId: produto.id,
+      opcoesEscolhidas: sel,
+      numeroPessoas: typeof numeroPessoas === 'number' ? numeroPessoas : undefined,
+    })
+      .then((res) => {
+        if (!cancelado) setViolacoes(res.violacoes);
+      })
+      .catch(() => {
+        if (!cancelado) setViolacoes([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentKey, produto?.id, JSON.stringify(sel), numeroPessoas]);
   const canAdvance =
     isMessageStep ||
     isAdicionaisStep ||
-    isResumoStep ||
+    (isResumoStep && !resumoBloqueado) ||
     (isPessoasStep && pessoasPreenchido) ||
     (cur && sel[cur.key]);
 
@@ -217,6 +260,17 @@ export default function WizardPage() {
   /* ─── Handlers ─── */
   const handleNext = () => {
     if (isResumoStep) {
+      if (violacoesBloqueio.length > 0) {
+        toast.error(violacoesBloqueio[0].mensagem);
+        return;
+      }
+      if (violacoesAviso.length > 0 && !avisoConfirmado) {
+        toast(
+          'Marca o "ciente" no aviso pra prosseguir',
+          { icon: '⚠️', duration: 3500 },
+        );
+        return;
+      }
       handleAddToCart();
     } else if (isMessageStep || isAdicionaisStep) {
       // mensagem e adicionais são sempre opcionais, pode avançar
@@ -601,6 +655,135 @@ export default function WizardPage() {
                       <p style={{ fontSize: 15, color: BRAND.marrom + 'aa', lineHeight: 1.5, margin: 0 }}>
                         Confira as escolhas do seu bolo antes de adicionar ao carrinho.
                       </p>
+
+                      {/* Violações BLOQUEAR */}
+                      {violacoesBloqueio.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {violacoesBloqueio.map((v) => (
+                            <div
+                              key={v.regraId}
+                              style={{
+                                padding: 16,
+                                borderRadius: 16,
+                                background: '#FFE8E8',
+                                border: '1.5px solid #CC0000',
+                                display: 'flex',
+                                gap: 12,
+                                alignItems: 'flex-start',
+                              }}
+                            >
+                              <AlertOctagon
+                                size={20}
+                                color="#CC0000"
+                                style={{ flexShrink: 0, marginTop: 2 }}
+                              />
+                              <div>
+                                <div
+                                  className="font-mono"
+                                  style={{
+                                    fontSize: 10,
+                                    color: '#CC0000',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  não dá pra prosseguir
+                                </div>
+                                <div style={{ fontSize: 14, color: BRAND.marrom, fontWeight: 600, marginBottom: 2 }}>
+                                  {v.nome}
+                                </div>
+                                <div style={{ fontSize: 13, color: `${BRAND.marrom}aa`, lineHeight: 1.45 }}>
+                                  {v.mensagem}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Violações AVISAR */}
+                      {violacoesAviso.length > 0 && (
+                        <div
+                          style={{
+                            padding: 16,
+                            borderRadius: 16,
+                            background: '#FFF4D6',
+                            border: '1.5px solid #E0A800',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 12,
+                          }}
+                        >
+                          {violacoesAviso.map((v) => (
+                            <div key={v.regraId} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                              <AlertTriangle
+                                size={20}
+                                color="#B08000"
+                                style={{ flexShrink: 0, marginTop: 2 }}
+                              />
+                              <div>
+                                <div
+                                  className="font-mono"
+                                  style={{
+                                    fontSize: 10,
+                                    color: '#B08000',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  atenção
+                                </div>
+                                <div style={{ fontSize: 14, color: BRAND.marrom, fontWeight: 600, marginBottom: 2 }}>
+                                  {v.nome}
+                                </div>
+                                <div style={{ fontSize: 13, color: `${BRAND.marrom}cc`, lineHeight: 1.45 }}>
+                                  {v.mensagem}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <label
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                              padding: '10px 14px',
+                              borderRadius: 12,
+                              background: BRAND.branco,
+                              cursor: 'pointer',
+                              border: `1.5px solid ${avisoConfirmado ? BRAND.rosa : BRAND.begeEsc}`,
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={avisoConfirmado}
+                              onChange={(e) => setAvisoConfirmado(e.target.checked)}
+                              style={{ accentColor: BRAND.rosa, width: 18, height: 18 }}
+                            />
+                            <span style={{ fontSize: 13, color: BRAND.marrom, fontWeight: 600 }}>
+                              estou ciente dos avisos acima
+                            </span>
+                          </label>
+                        </div>
+                      )}
+
+                      {avaliandoRegras && (
+                        <div
+                          className="font-mono"
+                          style={{
+                            fontSize: 11,
+                            color: `${BRAND.marrom}66`,
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          validando combinação…
+                        </div>
+                      )}
+
 
                       {/* Resumo das escolhas */}
                       <div style={{
