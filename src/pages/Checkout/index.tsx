@@ -151,6 +151,19 @@ export default function Checkout() {
   const desconto = cupomData?.desconto ?? 0;
   const total = totalValor + frete - desconto;
 
+  /** Politica de reembolso: janela hardcoded em 48h (sincronizado com schema default).
+   *  Limite 100% reembolso = despacho - 48h. Limite parcial = despacho - 24h. */
+  const JANELA_REEMBOLSO_HORAS = 48;
+  const limites = useMemo(() => {
+    if (!horaFesta) return null;
+    const festa = new Date(horaFesta);
+    const despacho = new Date(festa.getTime() - bufferHoras * 60 * 60 * 1000);
+    return {
+      total: new Date(despacho.getTime() - JANELA_REEMBOLSO_HORAS * 60 * 60 * 1000),
+      parcial: new Date(despacho.getTime() - (JANELA_REEMBOLSO_HORAS / 2) * 60 * 60 * 1000),
+    };
+  }, [horaFesta, bufferHoras]);
+
   const precisaEndereco = modalidade !== 'RETIRADA_BALCAO';
   const podeConfirmar =
     items.length > 0 &&
@@ -946,6 +959,51 @@ export default function Checkout() {
                 )}
               </div>
             </div>
+
+            {/* Politica de reembolso */}
+            {limites && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: 14,
+                  borderRadius: 14,
+                  background: `${BRAND.marrom}08`,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: BRAND.marrom,
+                    opacity: 0.5,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 8,
+                  }}
+                >
+                  política de cancelamento
+                </div>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <li style={{ fontSize: 12, color: BRAND.marrom, lineHeight: 1.45 }}>
+                    🟢 <strong>100% reembolsável</strong> até{' '}
+                    {limites.total.toLocaleString('pt-BR', {
+                      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </li>
+                  <li style={{ fontSize: 12, color: BRAND.marrom, lineHeight: 1.45 }}>
+                    🟡 <strong>50% reembolso + 50% crédito futuro</strong> até{' '}
+                    {limites.parcial.toLocaleString('pt-BR', {
+                      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </li>
+                  <li style={{ fontSize: 12, color: BRAND.marrom, lineHeight: 1.45 }}>
+                    🔴 <strong>sem reembolso</strong> a partir daí — bolo já entra em produção
+                  </li>
+                </ul>
+              </div>
+            )}
 
             {/* Terms */}
             <label

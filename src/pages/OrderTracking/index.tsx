@@ -547,6 +547,101 @@ export default function OrderTracking() {
               </motion.div>
             )}
 
+            {/* Politica de reembolso enquanto cancelavel */}
+            {['AGUARDANDO_PAGAMENTO', 'PAGO'].includes(status) && pedido.dataAgendamento && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.28 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 24,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    marginBottom: 12,
+                  }}
+                >
+                  política de cancelamento
+                </div>
+                {(() => {
+                  const despacho = new Date(pedido.dataAgendamento);
+                  const janela = pedido.janelaReembolsoHoras ?? 48;
+                  const limiteTotal = new Date(despacho.getTime() - janela * 60 * 60 * 1000);
+                  const limiteParcial = new Date(despacho.getTime() - (janela / 2) * 60 * 60 * 1000);
+                  return (
+                    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <li style={{ fontSize: 13, color: BRAND.marrom, lineHeight: 1.45 }}>
+                        🟢 100% reembolsável até <strong>{fmtDate(limiteTotal.toISOString())}</strong>
+                      </li>
+                      <li style={{ fontSize: 13, color: BRAND.marrom, lineHeight: 1.45 }}>
+                        🟡 50% + 50% em crédito até <strong>{fmtDate(limiteParcial.toISOString())}</strong>
+                      </li>
+                      <li style={{ fontSize: 13, color: BRAND.marrom, lineHeight: 1.45 }}>
+                        🔴 sem reembolso depois disso
+                      </li>
+                    </ul>
+                  );
+                })()}
+              </motion.div>
+            )}
+
+            {/* Reembolso confirmado (CANCELADO) */}
+            {status === 'CANCELADO' && pedido.valorReembolso != null && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 24,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: '#CC0000',
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  reembolso
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, color: `${BRAND.marrom}99` }}>valor reembolsado</span>
+                  <span className="font-display" style={{ fontSize: 20, fontWeight: 800, color: BRAND.marrom }}>
+                    R$ {Number(pedido.valorReembolso).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+                {pedido.valorCreditoFuturo != null && Number(pedido.valorCreditoFuturo) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 13, color: `${BRAND.marrom}99` }}>crédito pra próximo pedido</span>
+                    <span className="font-display" style={{ fontSize: 18, fontWeight: 700, color: BRAND.rosa }}>
+                      R$ {Number(pedido.valorCreditoFuturo).toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                )}
+                <div className="font-mono" style={{ fontSize: 10, color: `${BRAND.marrom}77`, letterSpacing: '0.05em' }}>
+                  o reembolso entra na conta de origem em até 5 dias úteis
+                </div>
+              </motion.div>
+            )}
+
             {/* Delivery tracking */}
             {pedido.entrega?.trackingCode && (
               <motion.div
@@ -868,7 +963,22 @@ export default function OrderTracking() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                if (confirm('Tem certeza que quer cancelar?')) {
+                const dataAg = pedido.dataAgendamento
+                  ? new Date(pedido.dataAgendamento)
+                  : null;
+                const janela = pedido.janelaReembolsoHoras ?? 48;
+                let aviso = 'Tem certeza que quer cancelar?';
+                if (dataAg) {
+                  const horas = (dataAg.getTime() - Date.now()) / (60 * 60 * 1000);
+                  if (horas >= janela) {
+                    aviso = 'Cancelamento com 100% de reembolso. Confirma?';
+                  } else if (horas >= janela / 2) {
+                    aviso = 'Faltando pouco — reembolso de 50% + 50% em crédito futuro. Confirma?';
+                  } else {
+                    aviso = 'Sem direito a reembolso nesse prazo. Confirma cancelamento?';
+                  }
+                }
+                if (confirm(aviso)) {
                   cancelar({ id: pedido.id, motivo: 'Cancelado pelo cliente' });
                 }
               }}
