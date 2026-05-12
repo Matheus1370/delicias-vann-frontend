@@ -7,6 +7,7 @@ import { useCreateOrder } from '../../hooks/useOrders';
 import { useUpsellItems } from '../../hooks/useProducts';
 import { useValidarCupom } from '../../hooks/useCupons';
 import { useConfiguracoesEntrega, type ConfiguracaoEntrega } from '../../hooks/useEntrega';
+import { useSaldoCredito } from '../../hooks/useCredito';
 import { useMe } from '../../hooks/useUser';
 import { BRAND } from '../../styles/brand';
 import { Star11, Pill, ProductPlaceholder } from '../../components/BrandElements';
@@ -53,6 +54,8 @@ export default function Checkout() {
   const { mutate: criar, isPending } = useCreateOrder();
   const { mutate: validarCupom, data: cupomData, isPending: validandoCupom } = useValidarCupom();
   const { data: configsEntrega = [] } = useConfiguracoesEntrega();
+  const { data: saldoCredito } = useSaldoCredito();
+  const [usarCredito, setUsarCredito] = useState(false);
 
   const configByModalidade = useMemo<Record<string, ConfiguracaoEntrega>>(() => {
     const map: Record<string, ConfiguracaoEntrega> = {};
@@ -149,7 +152,10 @@ export default function Checkout() {
     return modalidadeAtual.freteBase;
   })();
   const desconto = cupomData?.desconto ?? 0;
-  const total = totalValor + frete - desconto;
+  const subtotalAposCupom = Math.max(0, totalValor + frete - desconto);
+  const saldoTotal = saldoCredito?.saldoTotal ?? 0;
+  const creditoAplicado = usarCredito ? Math.min(saldoTotal, subtotalAposCupom) : 0;
+  const total = Math.max(0, subtotalAposCupom - creditoAplicado);
 
   /** Politica de reembolso: janela hardcoded em 48h (sincronizado com schema default).
    *  Limite 100% reembolso = despacho - 48h. Limite parcial = despacho - 24h. */
@@ -223,7 +229,8 @@ export default function Checkout() {
         cupomCodigo: cupomData?.cupom?.codigo,
         numeroPessoas: pedidoNumeroPessoas,
         ocasiao: pedidoOcasiao,
-      },
+        usarCredito,
+      } as any,
       {
         onSuccess: (pedido) => {
           navigate(`/pedidos/${pedido.id}`);
@@ -958,6 +965,61 @@ export default function Checkout() {
                   </div>
                 )}
               </div>
+
+              {/* Vale-bolo / credito */}
+              {saldoTotal > 0 && (
+                <label
+                  style={{
+                    marginTop: 4,
+                    padding: 14,
+                    borderRadius: 14,
+                    background: usarCredito ? `${BRAND.rosa}14` : BRAND.bege,
+                    border: `1.5px solid ${usarCredito ? BRAND.rosa : BRAND.begeEsc}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={usarCredito}
+                    onChange={(e) => setUsarCredito(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: BRAND.rosa }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div
+                      className="font-mono"
+                      style={{
+                        fontSize: 10,
+                        color: BRAND.rosa,
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      vale-bolo disponível
+                    </div>
+                    <div
+                      className="font-display"
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 800,
+                        color: BRAND.marrom,
+                        marginTop: 2,
+                      }}
+                    >
+                      R$ {saldoTotal.toFixed(2).replace('.', ',')}
+                    </div>
+                    {usarCredito && creditoAplicado > 0 && (
+                      <div style={{ fontSize: 12, color: `${BRAND.marrom}aa`, marginTop: 2 }}>
+                        usando {currency(creditoAplicado)} neste pedido
+                      </div>
+                    )}
+                  </div>
+                </label>
+              )}
             </div>
 
             {/* Politica de reembolso */}
@@ -1078,6 +1140,12 @@ export default function Checkout() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ opacity: 0.7 }}>desconto</span>
                     <span>- {currency(desconto)}</span>
+                  </div>
+                )}
+                {creditoAplicado > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: BRAND.rosa }}>
+                    <span>vale-bolo</span>
+                    <span>- {currency(creditoAplicado)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: BRAND.rosa }}>
