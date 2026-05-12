@@ -9,6 +9,7 @@ import {
   useRemoverOcasiao,
   useEditarOcasiao,
 } from '../../hooks/useOcasioes';
+import { useMinhaEmpresa } from '../../hooks/useEmpresa';
 import { useAuthStore } from '../../store/auth.store';
 import { BRAND } from '../../styles/brand';
 import { Star11 } from '../../components/BrandElements';
@@ -286,6 +287,9 @@ export default function Profile() {
           {isPending ? 'salvando...' : 'salvar alteracoes'}
         </motion.button>
 
+        {/* PJ ativa */}
+        <EmpresaSection />
+
         {/* Indicar amigos */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -384,6 +388,59 @@ export default function Profile() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+function EmpresaSection() {
+  const { data: empresa } = useMinhaEmpresa();
+  if (!empresa) return null;
+  const aprovada = empresa.status === 'APROVADA';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.3 }}
+      style={{
+        marginBottom: 24,
+        padding: 20,
+        borderRadius: 20,
+        background: aprovada ? `${BRAND.marrom}` : BRAND.branco,
+        color: aprovada ? BRAND.bege : BRAND.marrom,
+        border: aprovada ? 'none' : `1px solid ${BRAND.begeEsc}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+      }}
+    >
+      <span style={{ fontSize: 28 }}>{aprovada ? '🏢' : '⏳'}</span>
+      <div style={{ flex: 1 }}>
+        <div className="font-mono" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: aprovada ? BRAND.rosa : `${BRAND.marrom}88`, marginBottom: 2 }}>
+          {aprovada ? '✓ você compra como' : 'em análise como'}
+        </div>
+        <div className="font-display" style={{ fontSize: 18, fontWeight: 800, fontStyle: 'italic' }}>
+          {empresa.nomeFantasia || empresa.razaoSocial}
+        </div>
+        {aprovada && Number(empresa.descontoPadrao) > 0 && (
+          <div className="font-mono" style={{ fontSize: 12, fontWeight: 700, color: BRAND.rosa, marginTop: 4 }}>
+            -{Number(empresa.descontoPadrao).toFixed(0)}% em todos os pedidos
+          </div>
+        )}
+      </div>
+      <a
+        href="/empresas"
+        style={{
+          padding: '8px 14px',
+          borderRadius: 999,
+          background: aprovada ? `${BRAND.bege}22` : BRAND.bege,
+          color: aprovada ? BRAND.bege : BRAND.marrom,
+          textDecoration: 'none',
+          fontWeight: 700,
+          fontSize: 12,
+        }}
+      >
+        ver
+      </a>
+    </motion.div>
   );
 }
 

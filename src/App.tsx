@@ -19,6 +19,7 @@ const Legal = lazy(() => import('./pages/Legal'));
 const Duvidas = lazy(() => import('./pages/Duvidas'));
 const Avaliar = lazy(() => import('./pages/Avaliar'));
 const Indicar = lazy(() => import('./pages/Indicar'));
+const Empresas = lazy(() => import('./pages/Empresas'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const GoogleCallback = lazy(() => import('./pages/Auth/GoogleCallback'));
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/auth/google/success" element={<GoogleCallback />} />
             <Route path="/duvidas" element={<Duvidas />} />
             <Route path="/avaliar/:token" element={<Avaliar />} />
+            <Route path="/empresas" element={<Empresas />} />
             <Route path="/termos" element={<Legal kind="termos" />} />
             <Route path="/privacidade" element={<Legal kind="privacidade" />} />
 
