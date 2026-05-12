@@ -48,6 +48,20 @@ export default function Checkout() {
     () => calcularModalidadesPermitidas(items),
     [items],
   );
+
+  const maxLeadTimeHoras = useMemo(
+    () => items.reduce((acc, it) => Math.max(acc, it.leadTimeHoras ?? 0), 0),
+    [items],
+  );
+  const minDataAgendamento = useMemo(() => {
+    if (maxLeadTimeHoras <= 0) return '';
+    const min = new Date(Date.now() + maxLeadTimeHoras * 60 * 60 * 1000);
+    // formato datetime-local "YYYY-MM-DDTHH:mm" no fuso local
+    const off = min.getTimezoneOffset();
+    const local = new Date(min.getTime() - off * 60 * 1000);
+    return local.toISOString().slice(0, 16);
+  }, [maxLeadTimeHoras]);
+  const maxLeadTimeDias = Math.ceil(maxLeadTimeHoras / 24);
   const primeiraPermitida =
     MODALIDADES.find((m) => modalidadesPermitidas.has(m.value))?.value ?? MODALIDADES[0].value;
   const [modalidade, setModalidade] = useState(primeiraPermitida);
@@ -523,6 +537,7 @@ export default function Checkout() {
                 <input
                   type="datetime-local"
                   value={dataAgendamento}
+                  min={minDataAgendamento || undefined}
                   onChange={(e) => setDataAgendamento(e.target.value)}
                   style={{
                     width: '100%',
@@ -536,6 +551,20 @@ export default function Checkout() {
                     color: BRAND.marrom,
                   }}
                 />
+                {maxLeadTimeHoras > 0 && (
+                  <div
+                    className="font-mono"
+                    style={{
+                      marginTop: 6,
+                      fontSize: 10,
+                      color: BRAND.rosa,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    ⏱ mínimo {maxLeadTimeDias} dias ({maxLeadTimeHoras}h) — tempo de produção desta combinação
+                  </div>
+                )}
               </div>
 
               {/* Address fields (conditional) */}

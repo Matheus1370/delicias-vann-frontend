@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus, MessageCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
-import { useProduct, useAdicionais, type AdicionalItem } from '../../hooks/useProducts';
+import { useProduct, useAdicionais, useLeadTime, type AdicionalItem } from '../../hooks/useProducts';
 import { useCreateRascunhoWhatsApp } from '../../hooks/useOrders';
 import { useAvaliarRegras, type Violacao } from '../../hooks/useRegras';
 import { useAuthStore } from '../../store/auth.store';
@@ -96,6 +96,8 @@ export default function WizardPage() {
     if (!numeroPessoas || !ocasiao || numeroPessoas <= 0) return null;
     return calcularKgSugerido(numeroPessoas, ocasiao);
   }, [numeroPessoas, ocasiao]);
+
+  const { data: leadTime } = useLeadTime(produto?.id, sel);
 
   const pessoasParaQuery = typeof numeroPessoas === 'number' ? numeroPessoas : undefined;
   const { data: adicionaisResp } = useAdicionais(pessoasParaQuery);
@@ -323,6 +325,7 @@ export default function WizardPage() {
       numeroPessoas: pessoasNum,
       ocasiao: ocasiao ?? undefined,
       modalidadesPermitidas: produto.modalidadesPermitidas,
+      leadTimeHoras: leadTime?.leadTimeHoras ?? produto.leadTimeHoras,
     });
 
     // Adiciona cada ADICIONAL escolhido como item separado do carrinho
@@ -921,7 +924,7 @@ export default function WizardPage() {
                       </div>
 
                       <p className="font-mono" style={{ fontSize: 11, color: BRAND.marrom + '66', textAlign: 'center', letterSpacing: '0.05em' }}>
-                        ⏱ prazo de produção: {produto.leadTimeHoras}h · você pode alterar voltando nos passos
+                        ⏱ prazo mínimo: {leadTime?.leadTimeDias ?? Math.ceil(produto.leadTimeHoras / 24)} dias ({leadTime?.leadTimeHoras ?? produto.leadTimeHoras}h) · você pode alterar voltando nos passos
                       </p>
                     </div>
                   ) : isMessageStep ? (
@@ -1559,12 +1562,26 @@ export default function WizardPage() {
                 </div>
 
                 {/* Lead time note */}
-                <div className="font-mono" style={{
-                  marginTop: 12, fontSize: 10, opacity: 0.5,
-                  textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center',
-                }}>
-                  ⏱ prazo de produção: {produto.leadTimeHoras}h
-                </div>
+                <motion.div
+                  className="font-mono"
+                  key={leadTime?.leadTimeHoras ?? produto.leadTimeHoras}
+                  initial={{ scale: 1.08, opacity: 0.4 }}
+                  animate={{ scale: 1, opacity: 0.7 }}
+                  transition={{ duration: 0.35 }}
+                  style={{
+                    marginTop: 12,
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    textAlign: 'center',
+                  }}
+                >
+                  ⏱ prazo mínimo:{' '}
+                  <span style={{ color: BRAND.rosa, fontWeight: 800 }}>
+                    {leadTime?.leadTimeDias ?? Math.ceil(produto.leadTimeHoras / 24)} dias
+                  </span>{' '}
+                  ({leadTime?.leadTimeHoras ?? produto.leadTimeHoras}h)
+                </motion.div>
               </motion.div>
             </div>
           </div>

@@ -68,6 +68,24 @@ export function useAdicionais(numeroPessoas?: number | null) {
   });
 }
 
+export interface LeadTimeResp {
+  leadTimeHoras: number;
+  leadTimeDias: number;
+}
+
+export function useLeadTime(produtoId: string | undefined, opcoesEscolhidas: Record<string, string>) {
+  const labels = Object.values(opcoesEscolhidas).filter(Boolean).sort().join('|');
+  return useQuery<LeadTimeResp>({
+    queryKey: ['lead-time', produtoId, labels],
+    enabled: !!produtoId,
+    queryFn: () =>
+      api
+        .post('/catalog/lead-time', { produtoId, opcoesEscolhidas })
+        .then((r) => r.data),
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useProductReviews(produtoId?: string) {
   return useQuery({
     queryKey: ['product-reviews', produtoId],

@@ -16,6 +16,8 @@ export interface CartItem {
   ocasiao?: Ocasiao;
   /** Modalidades de entrega aceitas para este item (intersect no checkout). */
   modalidadesPermitidas?: string[];
+  /** Lead time mínimo em horas (base produto + opcoesEscolhidas extra). */
+  leadTimeHoras?: number;
 }
 
 interface CartState {
