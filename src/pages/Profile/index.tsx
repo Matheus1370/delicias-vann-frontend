@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, Plus, Trash2 } from 'lucide-react';
 import { useMe, useUpdateMe, useAnonimizar } from '../../hooks/useUser';
+import {
+  useMinhasOcasioes,
+  useCriarOcasiao,
+  useRemoverOcasiao,
+  useEditarOcasiao,
+} from '../../hooks/useOcasioes';
 import { useAuthStore } from '../../store/auth.store';
 import { BRAND } from '../../styles/brand';
 import { Star11 } from '../../components/BrandElements';
@@ -279,6 +286,9 @@ export default function Profile() {
           {isPending ? 'salvando...' : 'salvar alteracoes'}
         </motion.button>
 
+        {/* Ocasiões */}
+        <OcasioesSection />
+
         {/* LGPD card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -340,5 +350,218 @@ export default function Profile() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+function formatarDiaMes(diaMes: string) {
+  const [mm, dd] = diaMes.split('-');
+  return `${dd}/${mm}`;
+}
+
+function OcasioesSection() {
+  const { data: ocasioes = [], isLoading } = useMinhasOcasioes();
+  const { mutate: criar, isPending: criando } = useCriarOcasiao();
+  const { mutate: remover } = useRemoverOcasiao();
+  const { mutate: editar } = useEditarOcasiao();
+  const [novoTitulo, setNovoTitulo] = useState('');
+  const [novoDia, setNovoDia] = useState('');
+
+  const submeter = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoTitulo.trim() || !novoDia) return;
+    // converte "yyyy-mm-dd" do input pra "MM-DD"
+    const [, mm, dd] = novoDia.split('-');
+    const diaMes = `${mm}-${dd}`;
+    criar(
+      { titulo: novoTitulo.trim(), diaMes },
+      {
+        onSuccess: () => {
+          setNovoTitulo('');
+          setNovoDia('');
+        },
+      },
+    );
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.35 }}
+      style={{
+        background: BRAND.branco,
+        borderRadius: 24,
+        padding: 28,
+        border: `1px solid ${BRAND.begeEsc}`,
+        marginBottom: 24,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <Calendar size={18} style={{ color: BRAND.rosa }} />
+        <div
+          className="font-mono"
+          style={{
+            fontSize: 11,
+            color: BRAND.rosa,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+          }}
+        >
+          minhas ocasiões
+        </div>
+      </div>
+      <p
+        style={{
+          fontSize: 13,
+          color: `${BRAND.marrom}88`,
+          lineHeight: 1.5,
+          marginBottom: 18,
+        }}
+      >
+        A gente avisa 60 dias antes pra você reservar o bolo a tempo. ✨
+      </p>
+
+      {isLoading ? (
+        <div style={{ fontSize: 13, color: `${BRAND.marrom}66`, fontStyle: 'italic' }}>
+          carregando...
+        </div>
+      ) : (
+        <AnimatePresence>
+          {ocasioes.map((oc, i) => (
+            <motion.div
+              key={oc.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ delay: i * 0.04 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 0',
+                borderBottom: `1px dashed ${BRAND.begeEsc}`,
+              }}
+            >
+              <div
+                style={{
+                  width: 56,
+                  textAlign: 'center',
+                  padding: 8,
+                  borderRadius: 12,
+                  background: BRAND.bege,
+                  fontWeight: 700,
+                  color: BRAND.marrom,
+                  fontSize: 13,
+                  flexShrink: 0,
+                }}
+              >
+                {formatarDiaMes(oc.diaMes)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.marrom }}>
+                  {oc.titulo}
+                </div>
+                <div className="font-mono" style={{ fontSize: 10, color: `${BRAND.marrom}66`, marginTop: 2 }}>
+                  {oc.ativa ? 'ativa' : 'pausada'}
+                  {oc.ultimoLembreteAno && ` · lembrete enviado em ${oc.ultimoLembreteAno}`}
+                </div>
+              </div>
+              <button
+                onClick={() => editar({ id: oc.id, data: { ativa: !oc.ativa } })}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 10,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: BRAND.bege,
+                  color: BRAND.marrom,
+                  border: `1.5px solid ${BRAND.begeEsc}`,
+                  cursor: 'pointer',
+                }}
+              >
+                {oc.ativa ? 'pausar' : 'ativar'}
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Remover "${oc.titulo}"?`)) remover(oc.id);
+                }}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 10,
+                  background: 'transparent',
+                  border: `1.5px solid #FFD0D0`,
+                  color: '#CC0000',
+                  cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      )}
+
+      {ocasioes.length === 0 && !isLoading && (
+        <div
+          style={{
+            padding: '20px 0',
+            textAlign: 'center',
+            color: `${BRAND.marrom}66`,
+            fontSize: 13,
+            fontStyle: 'italic',
+          }}
+        >
+          ainda nenhuma. cadastra a primeira aí embaixo 👇
+        </div>
+      )}
+
+      <form
+        onSubmit={submeter}
+        style={{
+          marginTop: 16,
+          display: 'grid',
+          gridTemplateColumns: '1fr 140px auto',
+          gap: 8,
+          alignItems: 'center',
+        }}
+      >
+        <input
+          type="text"
+          placeholder="ex: aniversário da Sofia"
+          value={novoTitulo}
+          onChange={(e) => setNovoTitulo(e.target.value)}
+          maxLength={60}
+          style={{ ...inputStyle, padding: '10px 16px', fontSize: 13 }}
+        />
+        <input
+          type="date"
+          value={novoDia}
+          onChange={(e) => setNovoDia(e.target.value)}
+          style={{ ...inputStyle, padding: '10px 12px', fontSize: 13 }}
+        />
+        <button
+          type="submit"
+          disabled={criando || !novoTitulo.trim() || !novoDia}
+          style={{
+            padding: '10px 16px',
+            borderRadius: 999,
+            background: BRAND.rosa,
+            color: BRAND.branco,
+            border: 'none',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: criando ? 'wait' : 'pointer',
+            opacity: !novoTitulo.trim() || !novoDia ? 0.4 : 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <Plus size={14} />
+          guardar
+        </button>
+      </form>
+    </motion.div>
   );
 }

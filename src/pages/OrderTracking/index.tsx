@@ -7,8 +7,10 @@ import {
   useCancelarPedidoCliente,
 } from '../../hooks/useOrders';
 import { useAvaliar } from '../../hooks/useAvaliacoes';
+import { useMinhasOcasioes, useCriarOcasiao } from '../../hooks/useOcasioes';
 import { BRAND } from '../../styles/brand';
 import { Star11 } from '../../components/BrandElements';
+import { Calendar } from 'lucide-react';
 
 const STEPS = [
   { key: 'AGUARDANDO_PAGAMENTO', label: 'Aguardando pagamento' },
@@ -39,8 +41,11 @@ export default function OrderTracking() {
   const { mutate: reorder, isPending: reorderPending } = useReorder();
   const { mutate: cancelar, isPending: cancelPending } = useCancelarPedidoCliente();
   const { mutate: avaliar, isPending: avaliarPending } = useAvaliar();
+  const { data: minhasOcasioes = [] } = useMinhasOcasioes();
+  const { mutate: criarOcasiao, isPending: criandoOcasiao } = useCriarOcasiao();
   const [nota, setNota] = useState(0);
   const [comentario, setComentario] = useState('');
+  const [tituloOcasiao, setTituloOcasiao] = useState('');
 
   if (isLoading) {
     return (
@@ -546,6 +551,91 @@ export default function OrderTracking() {
                 </div>
               </motion.div>
             )}
+
+            {/* Guardar ocasiao */}
+            {pedido.horaFestaPrevista &&
+              ['PAGO', 'EM_PRODUCAO', 'PRONTO', 'EM_ENTREGA', 'ENTREGUE'].includes(status) &&
+              !minhasOcasioes.some((o) => o.pedidoOriginalId === pedido.id) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.27 }}
+                  style={{
+                    background: `${BRAND.rosa}0c`,
+                    borderRadius: 24,
+                    padding: 24,
+                    border: `1.5px dashed ${BRAND.rosa}55`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Calendar size={16} style={{ color: BRAND.rosa }} />
+                    <div
+                      className="font-mono"
+                      style={{
+                        fontSize: 11,
+                        color: BRAND.rosa,
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      essa data se repete?
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: `${BRAND.marrom}aa`, lineHeight: 1.5, marginBottom: 14 }}>
+                    Se for, a gente te avisa <strong>60 dias antes</strong> no ano que vem pra você reservar o bolo a tempo.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="text"
+                      placeholder="ex: aniversário da Sofia"
+                      value={tituloOcasiao}
+                      onChange={(e) => setTituloOcasiao(e.target.value)}
+                      maxLength={60}
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        border: `1.5px solid ${BRAND.begeEsc}`,
+                        background: BRAND.branco,
+                        fontSize: 13,
+                        color: BRAND.marrom,
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        if (!tituloOcasiao.trim()) return;
+                        const data = new Date(pedido.horaFestaPrevista);
+                        const mm = String(data.getMonth() + 1).padStart(2, '0');
+                        const dd = String(data.getDate()).padStart(2, '0');
+                        criarOcasiao(
+                          {
+                            titulo: tituloOcasiao.trim(),
+                            diaMes: `${mm}-${dd}`,
+                            pedidoOriginalId: pedido.id,
+                            ano: data.getFullYear(),
+                          },
+                          { onSuccess: () => setTituloOcasiao('') },
+                        );
+                      }}
+                      disabled={!tituloOcasiao.trim() || criandoOcasiao}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: 999,
+                        background: tituloOcasiao.trim() ? BRAND.rosa : BRAND.begeEsc,
+                        color: tituloOcasiao.trim() ? BRAND.branco : `${BRAND.marrom}66`,
+                        border: 'none',
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: tituloOcasiao.trim() && !criandoOcasiao ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      guardar
+                    </button>
+                  </div>
+                </motion.div>
+              )}
 
             {/* Politica de reembolso enquanto cancelavel */}
             {['AGUARDANDO_PAGAMENTO', 'PAGO'].includes(status) && pedido.dataAgendamento && (
