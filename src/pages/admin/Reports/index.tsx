@@ -7,6 +7,7 @@ import {
   useCohort,
   useOcupacaoSlots,
   useGastoInsumo,
+  useFunilConversao,
 } from '../../../hooks/useReports';
 import { BRAND } from '../../../styles/brand';
 import { Star11 } from '../../../components/BrandElements';
@@ -45,8 +46,12 @@ export default function AdminReports() {
   const { data: cohort } = useCohort(90);
   const { data: ocupacao = [] } = useOcupacaoSlots(30);
   const { data: gastos = [] } = useGastoInsumo(days);
+  const { data: funil } = useFunilConversao(14);
 
   const maxFat = Math.max(...vendasDiarias.map((d: any) => d.faturamento), 1);
+
+  const funilEtapas = (funil?.etapas ?? []).filter((e) => e.sessoes > 0 || e.previousSessoes > 0);
+  const maxSessoes = funilEtapas[0]?.sessoes ?? 1;
 
   return (
     <div className="min-h-screen font-body" style={{ background: BRAND.bege }}>
@@ -318,6 +323,95 @@ export default function AdminReports() {
                   </table>
                 </div>
               </Card>
+
+              {/* Funil do configurador */}
+              {funilEtapas.length > 0 && (
+                <Card title="Funil do configurador (14d)" delay={0.5} fullWidth>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {funilEtapas.map((e) => {
+                      const widthPct = maxSessoes > 0 ? (e.sessoes / maxSessoes) * 100 : 0;
+                      return (
+                        <div key={e.etapa} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div
+                            className="font-mono"
+                            style={{
+                              width: 220,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              letterSpacing: '0.05em',
+                              color: BRAND.marrom,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {e.etapa}
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              background: BRAND.bege,
+                              borderRadius: 8,
+                              overflow: 'hidden',
+                              height: 28,
+                              position: 'relative',
+                            }}
+                          >
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${widthPct}%` }}
+                              transition={{ duration: 0.6 }}
+                              style={{
+                                height: '100%',
+                                background: `linear-gradient(90deg, ${BRAND.rosa}, ${BRAND.rosaDeep})`,
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 12px',
+                                fontSize: 12,
+                                fontWeight: 800,
+                                color: widthPct > 30 ? BRAND.branco : BRAND.marrom,
+                              }}
+                            >
+                              {e.sessoes}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              width: 80,
+                              textAlign: 'right',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: e.dropDaAnteriorPct > 0 ? '#DC2626' : `${BRAND.marrom}66`,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {e.dropDaAnteriorPct > 0 ? `-${e.dropDaAnteriorPct}%` : '—'}
+                          </div>
+                          <div
+                            className="font-mono"
+                            style={{
+                              width: 64,
+                              textAlign: 'right',
+                              fontSize: 11,
+                              color: `${BRAND.marrom}88`,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {e.conversaoTotalPct}%
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="font-mono" style={{ marginTop: 12, fontSize: 10, color: `${BRAND.marrom}55`, letterSpacing: '0.05em' }}>
+                    {funil?.totalSessoesIniciadas ?? 0} sessões entraram no wizard · drop = perda em relação à etapa anterior · % = conversão sobre o total
+                  </div>
+                </Card>
+              )}
 
               {/* Waste table - full width */}
               <Card title="Gasto por insumo / quebra" delay={0.55} fullWidth>

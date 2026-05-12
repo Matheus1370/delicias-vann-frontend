@@ -51,3 +51,25 @@ export function useGastoInsumo(days = 30) {
       api.get('/reports/gasto-insumo', { params: { days } }).then((r) => r.data),
   });
 }
+
+export interface FunilEtapa {
+  etapa: string;
+  sessoes: number;
+  conversaoTotalPct: number;
+  dropDaAnteriorPct: number;
+  previousSessoes: number;
+}
+
+export interface FunilConversaoResp {
+  periodoDias: number;
+  totalSessoesIniciadas: number;
+  etapas: FunilEtapa[];
+}
+
+export function useFunilConversao(days = 14) {
+  return useQuery<FunilConversaoResp>({
+    queryKey: ['report-funil-conversao', days],
+    queryFn: () =>
+      api.get('/reports/funil-conversao', { params: { days } }).then((r) => r.data),
+  });
+}

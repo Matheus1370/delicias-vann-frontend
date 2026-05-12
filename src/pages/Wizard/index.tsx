@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, M
 import { useProduct, useAdicionais, useLeadTime, type AdicionalItem } from '../../hooks/useProducts';
 import { useCreateRascunhoWhatsApp } from '../../hooks/useOrders';
 import { useAvaliarRegras, type Violacao } from '../../hooks/useRegras';
+import { trackFunil, useTrackAbandono } from '../../hooks/useFunilTracking';
 import { useAuthStore } from '../../store/auth.store';
 import { useCartStore, type Ocasiao } from '../../store/cart.store';
 import { BRAND } from '../../styles/brand';
@@ -176,6 +177,17 @@ export default function WizardPage() {
     (violacoesBloqueio.length > 0 ||
       (violacoesAviso.length > 0 && !avisoConfirmado));
 
+  /* Telemetria: dispara WIZARD_INICIADO ao montar, PASSO_X em mudança de step */
+  useEffect(() => {
+    trackFunil('WIZARD_INICIADO');
+  }, []);
+  useEffect(() => {
+    if (!currentKey) return;
+    const etapa = `PASSO_${currentKey.toUpperCase()}`;
+    trackFunil(etapa);
+  }, [currentKey]);
+  useTrackAbandono(() => `PASSO_${(currentKey ?? 'desconhecido').toUpperCase()}`);
+
   /* Avalia regras ao entrar no resumo */
   useEffect(() => {
     if (!produto || currentKey !== 'resumo') return;
@@ -343,6 +355,7 @@ export default function WizardPage() {
 
     // Persiste no carrinho global pra propagar ao backend no checkout
     setOcasiaoGlobal(pessoasNum ?? null, ocasiao);
+    trackFunil('WIZARD_CONCLUIDO', { temAdicionais: adicionaisSelecionados.length > 0 });
     toast.success('Bolo adicionado ao carrinho!');
     setShowAdded(true);
   };

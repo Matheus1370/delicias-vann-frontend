@@ -8,6 +8,7 @@ import { useUpsellItems } from '../../hooks/useProducts';
 import { useValidarCupom } from '../../hooks/useCupons';
 import { useConfiguracoesEntrega, type ConfiguracaoEntrega } from '../../hooks/useEntrega';
 import { useSaldoCredito } from '../../hooks/useCredito';
+import { trackFunil } from '../../hooks/useFunilTracking';
 import { useMe } from '../../hooks/useUser';
 import { BRAND } from '../../styles/brand';
 import { Star11, Pill, ProductPlaceholder } from '../../components/BrandElements';
@@ -117,6 +118,12 @@ export default function Checkout() {
       setModalidade(primeiraPermitida);
     }
   }, [modalidadesPermitidas, modalidade, primeiraPermitida, modalidadesDisponiveis, totalValor]);
+
+  /* Telemetria: marca CHECKOUT_INICIADO ao montar */
+  useEffect(() => {
+    trackFunil('CHECKOUT_INICIADO');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Buffer minimo por modalidade — espelha o backend */
   const BUFFER_MIN: Record<string, number> = {
@@ -233,6 +240,7 @@ export default function Checkout() {
       } as any,
       {
         onSuccess: (pedido) => {
+          trackFunil('PEDIDO_FINALIZADO', { pedidoId: pedido?.id, total });
           navigate(`/pedidos/${pedido.id}`);
         },
       },
