@@ -6,14 +6,23 @@ import { useCartStore } from '../../store/cart.store';
 import { useCreateOrder } from '../../hooks/useOrders';
 import { useUpsellItems } from '../../hooks/useProducts';
 import { useValidarCupom } from '../../hooks/useCupons';
+import { useConfiguracoesEntrega, type ConfiguracaoEntrega } from '../../hooks/useEntrega';
 import { useMe } from '../../hooks/useUser';
 import { BRAND } from '../../styles/brand';
 import { Star11, Pill, ProductPlaceholder } from '../../components/BrandElements';
 
-const MODALIDADES = [
-  { value: 'RETIRADA_BALCAO', label: 'Retirar no balcao', frete: 0 },
-  { value: 'MOTOBOY_LOCAL', label: 'Motoboy (ate 10km)', frete: 15 },
-  { value: 'UBER_DIRECT', label: 'Uber Direct', frete: 22 },
+const MODALIDADES_LABEL: Record<string, string> = {
+  RETIRADA_BALCAO: 'Retirar no balcao',
+  MOTOBOY_LOCAL: 'Motoboy (ate 10km)',
+  UBER_DIRECT: 'Uber Direct',
+  NOVENTA_NOVE_ENTREGAS: '99 Entregas',
+};
+
+const ORDEM_MODALIDADES = [
+  'RETIRADA_BALCAO',
+  'MOTOBOY_LOCAL',
+  'UBER_DIRECT',
+  'NOVENTA_NOVE_ENTREGAS',
 ];
 
 /** Calcula intersecao de modalidadesPermitidas de todos os itens do carrinho.
@@ -24,7 +33,7 @@ function calcularModalidadesPermitidas(items: { modalidadesPermitidas?: string[]
     if (!permitidas || permitidas.length === 0) return acc;
     if (acc === null) return new Set(permitidas);
     return new Set([...acc].filter((m) => permitidas.includes(m)));
-  }, null) ?? new Set(MODALIDADES.map((m) => m.value));
+  }, null) ?? new Set(ORDEM_MODALIDADES);
 }
 
 const currency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
@@ -43,6 +52,29 @@ export default function Checkout() {
   const { data: upsell = [] } = useUpsellItems();
   const { mutate: criar, isPending } = useCreateOrder();
   const { mutate: validarCupom, data: cupomData, isPending: validandoCupom } = useValidarCupom();
+  const { data: configsEntrega = [] } = useConfiguracoesEntrega();
+
+  const configByModalidade = useMemo<Record<string, ConfiguracaoEntrega>>(() => {
+    const map: Record<string, ConfiguracaoEntrega> = {};
+    for (const c of configsEntrega) map[c.modalidade] = c;
+    return map;
+  }, [configsEntrega]);
+
+  /** Modalidades disponíveis: ordem fixa + apenas as com config ativa. */
+  const modalidadesDisponiveis = useMemo(() => {
+    return ORDEM_MODALIDADES
+      .filter((m) => configByModalidade[m]?.ativa !== false && configByModalidade[m])
+      .map((m) => {
+        const cfg = configByModalidade[m]!;
+        return {
+          value: m,
+          label: MODALIDADES_LABEL[m] ?? m,
+          freteBase: Number(cfg.valorFreteBase),
+          minimo: Number(cfg.valorMinimoPedido),
+          gratisAcimaDe: cfg.valorFreteGratisAcimaDe != null ? Number(cfg.valorFreteGratisAcimaDe) : null,
+        };
+      });
+  }, [configByModalidade]);
 
   const modalidadesPermitidas = useMemo(
     () => calcularModalidadesPermitidas(items),
@@ -63,17 +95,25 @@ export default function Checkout() {
   }, [maxLeadTimeHoras]);
   const maxLeadTimeDias = Math.ceil(maxLeadTimeHoras / 24);
   const primeiraPermitida =
-    MODALIDADES.find((m) => modalidadesPermitidas.has(m.value))?.value ?? MODALIDADES[0].value;
+    modalidadesDisponiveis.find(
+      (m) => modalidadesPermitidas.has(m.value) && totalValor >= m.minimo,
+    )?.value ??
+    modalidadesDisponiveis.find((m) => modalidadesPermitidas.has(m.value))?.value ??
+    'RETIRADA_BALCAO';
   const [modalidade, setModalidade] = useState(primeiraPermitida);
   const [horaFesta, setHoraFesta] = useState('');
   const [bufferHoras, setBufferHoras] = useState<number>(2);
 
-  /* Se modalidade selecionada deixar de ser permitida (ex: item adicionado), troca pra primeira valida */
+  /* Se modalidade selecionada deixar de ser permitida (item incompativel)
+     ou subtotal cair abaixo do minimo da modalidade atual, troca pra primeira valida. */
   useEffect(() => {
-    if (!modalidadesPermitidas.has(modalidade)) {
+    const cfg = modalidadesDisponiveis.find((m) => m.value === modalidade);
+    const invalida =
+      !modalidadesPermitidas.has(modalidade) || (cfg && totalValor < cfg.minimo);
+    if (invalida) {
       setModalidade(primeiraPermitida);
     }
-  }, [modalidadesPermitidas, modalidade, primeiraPermitida]);
+  }, [modalidadesPermitidas, modalidade, primeiraPermitida, modalidadesDisponiveis, totalValor]);
 
   /* Buffer minimo por modalidade — espelha o backend */
   const BUFFER_MIN: Record<string, number> = {
@@ -100,7 +140,14 @@ export default function Checkout() {
   });
   const [aceitou, setAceitou] = useState(false);
 
-  const frete = MODALIDADES.find((m) => m.value === modalidade)?.frete ?? 0;
+  const modalidadeAtual = modalidadesDisponiveis.find((m) => m.value === modalidade);
+  const frete = (() => {
+    if (!modalidadeAtual) return 0;
+    if (modalidadeAtual.gratisAcimaDe != null && totalValor >= modalidadeAtual.gratisAcimaDe) {
+      return 0;
+    }
+    return modalidadeAtual.freteBase;
+  })();
   const desconto = cupomData?.desconto ?? 0;
   const total = totalValor + frete - desconto;
 
@@ -470,23 +517,29 @@ export default function Checkout() {
 
               {/* Delivery modality */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                {MODALIDADES.map((m) => {
-                  const liberada = modalidadesPermitidas.has(m.value);
-                  const itemIncompativel = !liberada
+                {modalidadesDisponiveis.map((m) => {
+                  const compativel = modalidadesPermitidas.has(m.value);
+                  const atingeMinimo = totalValor >= m.minimo;
+                  const liberada = compativel && atingeMinimo;
+                  const itemIncompativel = !compativel
                     ? items.find(
                         (i) =>
                           i.modalidadesPermitidas &&
                           !i.modalidadesPermitidas.includes(m.value),
                       )
                     : null;
+                  const freteEfetivo =
+                    m.gratisAcimaDe != null && totalValor >= m.gratisAcimaDe ? 0 : m.freteBase;
+                  let motivo: string | null = null;
+                  if (!compativel && itemIncompativel) {
+                    motivo = `${itemIncompativel.nome} não pode ser despachado por essa modalidade`;
+                  } else if (!atingeMinimo) {
+                    motivo = `mínimo de ${currency(m.minimo)} pra essa modalidade`;
+                  }
                   return (
                     <label
                       key={m.value}
-                      title={
-                        !liberada && itemIncompativel
-                          ? `${itemIncompativel.nome} não pode ser despachado por essa modalidade`
-                          : undefined
-                      }
+                      title={motivo ?? undefined}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -504,7 +557,7 @@ export default function Checkout() {
                         }`,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                         <input
                           type="radio"
                           name="modalidade"
@@ -512,29 +565,50 @@ export default function Checkout() {
                           checked={modalidade === m.value}
                           onChange={() => setModalidade(m.value)}
                         />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom }}>
-                          {m.label}
-                        </span>
-                        {!liberada && itemIncompativel && (
-                          <span
-                            className="font-mono"
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 999,
-                              background: '#FFE8E8',
-                              color: '#CC0000',
-                              letterSpacing: '0.06em',
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            não disponível
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom }}>
+                            {m.label}
                           </span>
-                        )}
+                          {motivo && (
+                            <span
+                              className="font-mono"
+                              style={{
+                                fontSize: 9,
+                                color: '#CC0000',
+                                marginTop: 2,
+                                letterSpacing: '0.05em',
+                              }}
+                            >
+                              {motivo}
+                            </span>
+                          )}
+                          {liberada && m.gratisAcimaDe != null && freteEfetivo > 0 && (
+                            <span
+                              className="font-mono"
+                              style={{
+                                fontSize: 9,
+                                color: BRAND.rosa,
+                                marginTop: 2,
+                                letterSpacing: '0.05em',
+                              }}
+                            >
+                              frete grátis acima de {currency(m.gratisAcimaDe)} ·
+                              faltam {currency(m.gratisAcimaDe - totalValor)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: BRAND.marrom, opacity: 0.6 }}>
-                        {m.frete === 0 ? 'gratis' : currency(m.frete)}
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: freteEfetivo === 0 ? BRAND.rosa : BRAND.marrom,
+                          opacity: liberada ? 1 : 0.5,
+                          flexShrink: 0,
+                          marginLeft: 8,
+                        }}
+                      >
+                        {freteEfetivo === 0 ? 'grátis' : currency(freteEfetivo)}
                       </span>
                     </label>
                   );
