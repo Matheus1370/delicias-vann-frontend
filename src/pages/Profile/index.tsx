@@ -286,6 +286,40 @@ export default function Profile() {
           {isPending ? 'salvando...' : 'salvar alteracoes'}
         </motion.button>
 
+        {/* Indicar amigos */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.32 }}
+          style={{ marginBottom: 24 }}
+        >
+          <a
+            href="/indicar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              padding: '18px 22px',
+              borderRadius: 20,
+              background: `linear-gradient(135deg, ${BRAND.rosa}, ${BRAND.rosaDeep})`,
+              color: BRAND.branco,
+              textDecoration: 'none',
+              boxShadow: `0 8px 24px ${BRAND.rosa}33`,
+            }}
+          >
+            <span style={{ fontSize: 28 }}>🎁</span>
+            <div style={{ flex: 1 }}>
+              <div className="font-display" style={{ fontSize: 18, fontWeight: 800, fontStyle: 'italic' }}>
+                indique e ganhe 10%
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>
+                seu amigo ganha desconto. você também.
+              </div>
+            </div>
+            <span style={{ fontSize: 20 }}>→</span>
+          </a>
+        </motion.div>
+
         {/* Ocasiões */}
         <OcasioesSection />
 

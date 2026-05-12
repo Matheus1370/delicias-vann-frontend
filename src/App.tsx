@@ -18,6 +18,7 @@ const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Legal = lazy(() => import('./pages/Legal'));
 const Duvidas = lazy(() => import('./pages/Duvidas'));
 const Avaliar = lazy(() => import('./pages/Avaliar'));
+const Indicar = lazy(() => import('./pages/Indicar'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const GoogleCallback = lazy(() => import('./pages/Auth/GoogleCallback'));
@@ -125,6 +126,14 @@ export default function App() {
               element={
                 <PrivateRoute>
                   <Subscriptions />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/indicar"
+              element={
+                <PrivateRoute>
+                  <Indicar />
                 </PrivateRoute>
               }
             />

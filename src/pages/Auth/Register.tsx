@@ -1,9 +1,10 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/auth.store';
+import { useConsultarIndicacao } from '../../hooks/useIndicacoes';
 import { BRAND } from '../../styles/brand';
 import { Star11 } from '../../components/BrandElements';
 
@@ -17,6 +18,9 @@ const FIELDS = [
 export default function Register() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const [searchParams] = useSearchParams();
+  const refCodigo = searchParams.get('ref')?.toUpperCase() ?? null;
+  const { data: indicacao } = useConsultarIndicacao(refCodigo);
   const [form, setForm] = useState({ nome: '', email: '', senha: '', telefone: '' });
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +28,7 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/auth/register', form);
+      await api.post('/auth/register', { ...form, refCodigo: refCodigo ?? undefined });
       toast.success('Cadastro concluido!');
       // Auto-login after successful registration
       const { data } = await api.post('/auth/login', {
@@ -128,11 +132,37 @@ export default function Register() {
             color: BRAND.marrom,
             opacity: 0.5,
             textAlign: 'center',
-            marginBottom: 36,
+            marginBottom: indicacao?.valida ? 18 : 36,
           }}
         >
           e comece a encomendar suas delicias
         </p>
+
+        {/* Banner de indicacao */}
+        {indicacao?.valida && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              marginBottom: 28,
+              padding: '14px 18px',
+              borderRadius: 16,
+              background: `${BRAND.rosa}12`,
+              border: `1.5px dashed ${BRAND.rosa}55`,
+              textAlign: 'center',
+            }}
+          >
+            <div className="font-mono" style={{ fontSize: 10, color: BRAND.rosa, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+              ✨ você foi indicado por
+            </div>
+            <div className="font-display" style={{ fontSize: 18, fontWeight: 700, color: BRAND.marrom }}>
+              {indicacao.indicadorNome ?? 'um amigo'}
+            </div>
+            <div style={{ fontSize: 12, color: `${BRAND.marrom}88`, marginTop: 4 }}>
+              ganhe <strong>10% no 1° pedido</strong> 💖
+            </div>
+          </motion.div>
+        )}
 
         {/* Fields */}
         {FIELDS.map((f, idx) => (
