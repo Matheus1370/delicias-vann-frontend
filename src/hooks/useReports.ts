@@ -73,3 +73,20 @@ export function useFunilConversao(days = 14) {
       api.get('/reports/funil-conversao', { params: { days } }).then((r) => r.data),
   });
 }
+
+export interface KpisEstrategicos {
+  periodoDias: number;
+  taxaAnexacaoAdicional: number;
+  recompra12mPct: number;
+  customizacaoExtrema: number;
+  erroOperacionalPct: number;
+  npsPosFesta: { media: number; amostra: number };
+  ocupacaoSemanalPct: number;
+}
+
+export function useKpisEstrategicos(days = 30) {
+  return useQuery<KpisEstrategicos>({
+    queryKey: ['report-kpis', days],
+    queryFn: () => api.get('/reports/kpis', { params: { days } }).then((r) => r.data),
+  });
+}

@@ -8,6 +8,7 @@ import {
   useOcupacaoSlots,
   useGastoInsumo,
   useFunilConversao,
+  useKpisEstrategicos,
 } from '../../../hooks/useReports';
 import { BRAND } from '../../../styles/brand';
 import { Star11 } from '../../../components/BrandElements';
@@ -47,6 +48,7 @@ export default function AdminReports() {
   const { data: ocupacao = [] } = useOcupacaoSlots(30);
   const { data: gastos = [] } = useGastoInsumo(days);
   const { data: funil } = useFunilConversao(14);
+  const { data: kpis } = useKpisEstrategicos(days);
 
   const maxFat = Math.max(...vendasDiarias.map((d: any) => d.faturamento), 1);
 
@@ -156,6 +158,25 @@ export default function AdminReports() {
                   )}
                 </div>
               </motion.div>
+            )}
+
+            {/* KPIs estrategicos (Fase 4) */}
+            {kpis && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: 12,
+                  marginBottom: 20,
+                }}
+              >
+                <KpiStrat label="adicional anexado" value={`${kpis.taxaAnexacaoAdicional}%`} hint="% pedidos de bolo c/ adicional" alvo={kpis.taxaAnexacaoAdicional >= 30 ? 'ok' : 'baixo'} />
+                <KpiStrat label="recompra 12m" value={`${kpis.recompra12mPct}%`} hint="clientes c/ ≥ 2 pedidos" alvo={kpis.recompra12mPct >= 25 ? 'ok' : 'baixo'} />
+                <KpiStrat label="customização" value={`${kpis.customizacaoExtrema}%`} hint="% pedidos personalizados" />
+                <KpiStrat label="erro operacional" value={`${kpis.erroOperacionalPct}%`} hint="falha entrega + NPS ≤ 6" alvo={kpis.erroOperacionalPct > 3 ? 'alto' : 'ok'} />
+                <KpiStrat label="NPS pós-festa" value={kpis.npsPosFesta.amostra > 0 ? kpis.npsPosFesta.media.toFixed(1) : '—'} hint={`amostra ${kpis.npsPosFesta.amostra}`} alvo={kpis.npsPosFesta.media >= 9 ? 'ok' : kpis.npsPosFesta.media >= 7 ? '' : 'baixo'} />
+                <KpiStrat label="ocupação semanal" value={`${kpis.ocupacaoSemanalPct}%`} hint="capacidade desta semana" alvo={kpis.ocupacaoSemanalPct > 90 ? 'alto' : 'ok'} />
+              </div>
             )}
 
             {/* Charts grid */}
@@ -517,6 +538,52 @@ function Kpi({
       >
         {value}
       </div>
+    </motion.div>
+  );
+}
+
+function KpiStrat({
+  label,
+  value,
+  hint,
+  alvo,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  alvo?: 'ok' | 'baixo' | 'alto' | '';
+}) {
+  const cor =
+    alvo === 'ok'
+      ? '#15803d'
+      : alvo === 'baixo' || alvo === 'alto'
+      ? '#CC0000'
+      : BRAND.marrom;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        background: BRAND.branco,
+        borderRadius: 18,
+        border: `1px solid ${BRAND.begeEsc}`,
+        padding: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+      }}
+    >
+      <div className="font-mono" style={{ fontSize: 9, color: `${BRAND.marrom}88`, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        {label}
+      </div>
+      <div className="font-display" style={{ fontSize: 26, fontWeight: 800, color: cor, lineHeight: 1, fontStyle: 'italic' }}>
+        {value}
+      </div>
+      {hint && (
+        <div className="font-mono" style={{ fontSize: 9, color: `${BRAND.marrom}66`, letterSpacing: '0.05em' }}>
+          {hint}
+        </div>
+      )}
     </motion.div>
   );
 }
