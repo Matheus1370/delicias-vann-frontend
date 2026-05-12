@@ -122,11 +122,24 @@ export default function ProductionSheet() {
             <div className="font-mono" style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: `${BRAND.marrom}88`, marginBottom: 6 }}>
               Entrega
             </div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>
-              {pedido.dataAgendamento
-                ? new Date(pedido.dataAgendamento).toLocaleString('pt-BR')
-                : '\u2014'}
-            </div>
+            {pedido.horaFestaPrevista ? (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>
+                  \ud83c\udf89 festa: {new Date(pedido.horaFestaPrevista).toLocaleString('pt-BR')}
+                </div>
+                <div style={{ fontSize: 13, color: BRAND.rosa, fontWeight: 700, marginTop: 4 }}>
+                  \ud83d\udce6 despacho: {pedido.dataAgendamento
+                    ? new Date(pedido.dataAgendamento).toLocaleString('pt-BR')
+                    : '\u2014'}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontWeight: 700, fontSize: 15 }}>
+                {pedido.dataAgendamento
+                  ? new Date(pedido.dataAgendamento).toLocaleString('pt-BR')
+                  : '\u2014'}
+              </div>
+            )}
             <div style={{ fontSize: 13, color: `${BRAND.marrom}88`, marginTop: 2 }}>{pedido.modalidadeEntrega}</div>
           </div>
         </div>

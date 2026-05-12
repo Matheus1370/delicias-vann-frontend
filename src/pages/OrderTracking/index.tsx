@@ -499,6 +499,54 @@ export default function OrderTracking() {
               </motion.div>
             )}
 
+            {/* Janela festa/despacho */}
+            {pedido.horaFestaPrevista && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.25 }}
+                style={{
+                  background: BRAND.branco,
+                  borderRadius: 24,
+                  padding: 24,
+                  border: `1px solid ${BRAND.begeEsc}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                }}
+              >
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: BRAND.rosa,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  sua janela
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 13, color: `${BRAND.marrom}99` }}>🎉 festa</span>
+                    <span className="font-display" style={{ fontSize: 18, fontWeight: 700, color: BRAND.marrom }}>
+                      {fmtDate(pedido.horaFestaPrevista)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 13, color: `${BRAND.marrom}99` }}>📦 despacho</span>
+                    <span className="font-display" style={{ fontSize: 18, fontWeight: 700, color: BRAND.rosa }}>
+                      {fmtDate(pedido.dataAgendamento)}
+                    </span>
+                  </div>
+                </div>
+                <div className="font-mono" style={{ fontSize: 10, color: `${BRAND.marrom}77`, letterSpacing: '0.05em' }}>
+                  bolo sai {pedido.bufferHorasAntes}h antes da festa
+                </div>
+              </motion.div>
+            )}
+
             {/* Delivery tracking */}
             {pedido.entrega?.trackingCode && (
               <motion.div

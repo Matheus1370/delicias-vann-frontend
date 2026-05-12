@@ -65,6 +65,8 @@ export default function Checkout() {
   const primeiraPermitida =
     MODALIDADES.find((m) => modalidadesPermitidas.has(m.value))?.value ?? MODALIDADES[0].value;
   const [modalidade, setModalidade] = useState(primeiraPermitida);
+  const [horaFesta, setHoraFesta] = useState('');
+  const [bufferHoras, setBufferHoras] = useState<number>(2);
 
   /* Se modalidade selecionada deixar de ser permitida (ex: item adicionado), troca pra primeira valida */
   useEffect(() => {
@@ -72,6 +74,18 @@ export default function Checkout() {
       setModalidade(primeiraPermitida);
     }
   }, [modalidadesPermitidas, modalidade, primeiraPermitida]);
+
+  /* Buffer minimo por modalidade — espelha o backend */
+  const BUFFER_MIN: Record<string, number> = {
+    RETIRADA_BALCAO: 0,
+    MOTOBOY_LOCAL: 2,
+    UBER_DIRECT: 1,
+    NOVENTA_NOVE_ENTREGAS: 1,
+  };
+  const bufferMin = BUFFER_MIN[modalidade] ?? 0;
+  useEffect(() => {
+    if (bufferHoras < bufferMin) setBufferHoras(bufferMin);
+  }, [bufferMin, bufferHoras]);
   const [observacoes, setObservacoes] = useState('');
   const [cupom, setCupom] = useState('');
   const [dataAgendamento, setDataAgendamento] = useState('');
@@ -94,10 +108,33 @@ export default function Checkout() {
   const podeConfirmar =
     items.length > 0 &&
     aceitou &&
-    !!dataAgendamento &&
+    !!horaFesta &&
     !!cpf &&
     (!precisaEndereco ||
       (!!endereco.logradouro && !!endereco.numero && !!endereco.bairro && !!endereco.cep));
+
+  /* Despacho derivado da festa - buffer */
+  const despachoStr = useMemo(() => {
+    if (!horaFesta) return '';
+    const festa = new Date(horaFesta);
+    const despacho = new Date(festa.getTime() - bufferHoras * 60 * 60 * 1000);
+    return despacho.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }, [horaFesta, bufferHoras]);
+
+  /* min datetime: agora + (leadTime + buffer) garante despacho >= now+leadTime */
+  const minHoraFesta = useMemo(() => {
+    const horas = maxLeadTimeHoras + bufferHoras;
+    if (horas <= 0) return '';
+    const min = new Date(Date.now() + horas * 60 * 60 * 1000);
+    const off = min.getTimezoneOffset();
+    const local = new Date(min.getTime() - off * 60 * 1000);
+    return local.toISOString().slice(0, 16);
+  }, [maxLeadTimeHoras, bufferHoras]);
 
   const aplicarCupom = () => {
     if (!cupom.trim()) return;
@@ -120,7 +157,8 @@ export default function Checkout() {
           personalizacao: i.personalizacao,
         })),
         modalidadeEntrega: modalidade,
-        dataAgendamento,
+        horaFestaPrevista: new Date(horaFesta).toISOString(),
+        bufferHorasAntes: bufferHoras,
         observacoes: observacoes || undefined,
         cupomCodigo: cupomData?.cupom?.codigo,
         numeroPessoas: pedidoNumeroPessoas,
@@ -518,7 +556,7 @@ export default function Checkout() {
                 </div>
               )}
 
-              {/* Schedule */}
+              {/* Schedule — festa + buffer */}
               <div style={{ marginBottom: 16 }}>
                 <div
                   className="font-mono"
@@ -532,13 +570,13 @@ export default function Checkout() {
                     marginBottom: 6,
                   }}
                 >
-                  data de retirada/entrega
+                  que horas é a festa?
                 </div>
                 <input
                   type="datetime-local"
-                  value={dataAgendamento}
-                  min={minDataAgendamento || undefined}
-                  onChange={(e) => setDataAgendamento(e.target.value)}
+                  value={horaFesta}
+                  min={minHoraFesta || undefined}
+                  onChange={(e) => setHoraFesta(e.target.value)}
                   style={{
                     width: '100%',
                     padding: 12,
@@ -551,6 +589,93 @@ export default function Checkout() {
                     color: BRAND.marrom,
                   }}
                 />
+
+                <div style={{ marginTop: 12 }}>
+                  <div
+                    className="font-mono"
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: BRAND.marrom,
+                      opacity: 0.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      marginBottom: 6,
+                    }}
+                  >
+                    chegada do bolo (antes da festa)
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[0, 1, 2, 3, 4].filter((h) => h >= bufferMin).map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setBufferHoras(h)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 0',
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: bufferHoras === h ? BRAND.rosa : BRAND.bege,
+                          color: bufferHoras === h ? BRAND.branco : BRAND.marrom,
+                          border: `1.5px solid ${bufferHoras === h ? BRAND.rosa : BRAND.begeEsc}`,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {h === 0 ? 'na hora' : `${h}h antes`}
+                      </button>
+                    ))}
+                  </div>
+                  {bufferMin > 0 && (
+                    <div
+                      className="font-mono"
+                      style={{
+                        marginTop: 4,
+                        fontSize: 9,
+                        color: `${BRAND.marrom}77`,
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      mínimo {bufferMin}h para {modalidade.toLowerCase().replace(/_/g, ' ')}
+                    </div>
+                  )}
+                </div>
+
+                {horaFesta && despachoStr && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: 12,
+                      borderRadius: 12,
+                      background: `${BRAND.rosa}10`,
+                      border: `1.5px dashed ${BRAND.rosa}55`,
+                    }}
+                  >
+                    <div
+                      className="font-mono"
+                      style={{
+                        fontSize: 9,
+                        color: BRAND.rosa,
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        marginBottom: 4,
+                      }}
+                    >
+                      despacho previsto
+                    </div>
+                    <div style={{ fontSize: 14, color: BRAND.marrom, fontWeight: 700 }}>
+                      {despachoStr}
+                    </div>
+                    <div style={{ fontSize: 12, color: `${BRAND.marrom}88`, marginTop: 2 }}>
+                      {modalidade === 'RETIRADA_BALCAO'
+                        ? 'esse é o horário pra retirada no balcão.'
+                        : `bolo sai do nosso forno pra chegar ${bufferHoras}h antes da festa.`}
+                    </div>
+                  </div>
+                )}
+
                 {maxLeadTimeHoras > 0 && (
                   <div
                     className="font-mono"
@@ -562,7 +687,7 @@ export default function Checkout() {
                       letterSpacing: '0.06em',
                     }}
                   >
-                    ⏱ mínimo {maxLeadTimeDias} dias ({maxLeadTimeHoras}h) — tempo de produção desta combinação
+                    ⏱ prazo mínimo {maxLeadTimeDias} dias ({maxLeadTimeHoras}h) de produção
                   </div>
                 )}
               </div>
