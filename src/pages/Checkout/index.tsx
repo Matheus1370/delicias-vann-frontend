@@ -229,6 +229,7 @@ export default function Checkout() {
           quantidade: i.quantidade,
           opcoesEscolhidas: i.opcoesEscolhidas,
           personalizacao: i.personalizacao,
+          imagensReferencia: i.imagensReferencia,
         })),
         modalidadeEntrega: modalidade,
         horaFestaPrevista: new Date(horaFesta).toISOString(),

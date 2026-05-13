@@ -13,6 +13,7 @@ import { Star11 } from '../../components/BrandElements';
 import { Calendar } from 'lucide-react';
 
 const STEPS = [
+  { key: 'AGUARDANDO_AVALIACAO_COMPLEXIDADE', label: 'Avaliando referência' },
   { key: 'AGUARDANDO_PAGAMENTO', label: 'Aguardando pagamento' },
   { key: 'PAGO', label: 'Pagamento confirmado' },
   { key: 'EM_PRODUCAO', label: 'Em producao' },
@@ -386,6 +387,42 @@ export default function OrderTracking() {
                     );
                   })}
                 </div>
+              </motion.div>
+            )}
+
+            {/* Aguardando avaliação de complexidade — orçamento extra antes do pagamento */}
+            {status === 'AGUARDANDO_AVALIACAO_COMPLEXIDADE' && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  background: BRAND.ciano + '22',
+                  border: `2px solid ${BRAND.ciano}`,
+                  borderRadius: 20,
+                  padding: 24,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 11,
+                    letterSpacing: 2,
+                    textTransform: 'uppercase',
+                    color: BRAND.marrom,
+                    opacity: 0.7,
+                    marginBottom: 6,
+                  }}
+                >
+                  avaliando sua referência
+                </div>
+                <h3 style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: BRAND.marrom, margin: 0 }}>
+                  pagamento sai depois do orçamento
+                </h3>
+                <p style={{ fontFamily: 'Quicksand', fontSize: 14, color: BRAND.marrom, opacity: 0.8, marginTop: 10, lineHeight: 1.5 }}>
+                  a foto que você mandou exige uma análise rápida — em até 2h a confeiteira define
+                  o custo extra (se houver) e libera o link Pix aqui mesmo. <strong>nada é cobrado antes da sua confirmação.</strong>
+                </p>
               </motion.div>
             )}
 

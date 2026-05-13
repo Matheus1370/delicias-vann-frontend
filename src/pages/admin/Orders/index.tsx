@@ -7,6 +7,7 @@ import {
   useUpdateOrderStatus,
   useRascunhosWhatsApp,
   useAdicionarFotoPronto,
+  useAvaliarComplexidade,
 } from '../../../hooks/useOrders';
 import { BRAND } from '../../../styles/brand';
 import { Star11 } from '../../../components/BrandElements';
@@ -14,6 +15,7 @@ import { gerarLinkWhatsApp } from '../../../utils/whatsapp';
 import { arquivoParaDataURL } from '../../../utils/imageResize';
 
 const STATUS_CONFIG = {
+  AGUARDANDO_AVALIACAO_COMPLEXIDADE: { label: 'Avaliar custo', bg: BRAND.ciano, text: BRAND.branco },
   AGUARDANDO_PAGAMENTO: { label: 'Aguardando', bg: BRAND.begeEsc, text: BRAND.marrom },
   PAGO: { label: 'Pago', bg: BRAND.ciano, text: BRAND.branco },
   EM_PRODUCAO: { label: 'Em Producao', bg: BRAND.roxo, text: BRAND.branco },
@@ -32,6 +34,7 @@ const NEXT_STATUS: Record<string, string> = {
 
 const FILTER_TABS = [
   { value: '', label: 'Todos' },
+  { value: 'AGUARDANDO_AVALIACAO_COMPLEXIDADE', label: 'Avaliar custo' },
   { value: 'PAGO', label: 'Pago' },
   { value: 'EM_PRODUCAO', label: 'Producao' },
   { value: 'PRONTO', label: 'Pronto' },
@@ -45,11 +48,14 @@ export default function AdminOrders() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [fotoLegenda, setFotoLegenda] = useState('');
   const [processandoArquivo, setProcessandoArquivo] = useState(false);
+  const [complexidadeModalPedido, setComplexidadeModalPedido] = useState<any | null>(null);
+  const [complexidadeForm, setComplexidadeForm] = useState<Record<string, { custo: string; notas: string }>>({});
 
   const { data, isLoading } = useAdminOrders({ status: filter || undefined });
   const { mutate: updateStatus } = useUpdateOrderStatus();
   const { data: rascunhos = [], isLoading: rascunhosLoading } = useRascunhosWhatsApp();
   const { mutateAsync: enviarFoto, isPending: enviandoFoto } = useAdicionarFotoPronto();
+  const { mutateAsync: enviarAvaliacao, isPending: enviandoAvaliacao } = useAvaliarComplexidade();
 
   const pedidos = data?.pedidos ?? [];
 
@@ -425,6 +431,32 @@ export default function AdminOrders() {
                       Ficha
                     </a>
 
+                    {/* Avaliar complexidade button */}
+                    {pedido.status === 'AGUARDANDO_AVALIACAO_COMPLEXIDADE' && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setComplexidadeModalPedido(pedido)}
+                        style={{
+                          padding: '7px 12px',
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: BRAND.branco,
+                          background: BRAND.ciano,
+                          border: 'none',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                        title="Avaliar custo extra do pedido com foto de referência"
+                      >
+                        avaliar custo
+                      </motion.button>
+                    )}
+
                     {/* Foto pronto button (quando status=PRONTO) */}
                     {pedido.status === 'PRONTO' && (
                       <motion.button
@@ -716,6 +748,240 @@ export default function AdminOrders() {
                   {enviandoFoto ? 'enviando...' : 'enviar pro cliente'}
                 </motion.button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Avaliar complexidade modal */}
+      <AnimatePresence>
+        {complexidadeModalPedido && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setComplexidadeModalPedido(null);
+              setComplexidadeForm({});
+            }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: `${BRAND.marrom}aa`,
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 24,
+              zIndex: 100,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: BRAND.bege,
+                borderRadius: 24,
+                padding: 32,
+                maxWidth: 760,
+                width: '100%',
+                maxHeight: '90vh',
+                overflow: 'auto',
+                position: 'relative',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setComplexidadeModalPedido(null);
+                  setComplexidadeForm({});
+                }}
+                aria-label="Fechar"
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  border: 'none',
+                  background: '#FFF',
+                  cursor: 'pointer',
+                }}
+              >
+                <XIcon size={18} />
+              </button>
+              <h2
+                style={{
+                  fontFamily: 'Fraunces',
+                  fontSize: 28,
+                  fontWeight: 500,
+                  color: BRAND.marrom,
+                  margin: 0,
+                  marginBottom: 8,
+                }}
+              >
+                avaliar custo extra
+              </h2>
+              <p style={{ fontFamily: 'Quicksand', fontSize: 13, color: BRAND.marrom, opacity: 0.65, marginTop: 0, marginBottom: 24 }}>
+                pedido <strong>{complexidadeModalPedido.id.slice(-6).toUpperCase()}</strong> ·{' '}
+                {complexidadeModalPedido.cliente?.nome} · só itens com foto de referência precisam de avaliação
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {complexidadeModalPedido.itens
+                  ?.filter((it: any) => (it.imagensReferencia?.length ?? 0) > 0)
+                  .map((item: any) => {
+                    const form = complexidadeForm[item.id] ?? { custo: '', notas: '' };
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: '#FFF',
+                          borderRadius: 16,
+                          padding: 16,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ fontFamily: 'Quicksand', fontWeight: 700, color: BRAND.marrom }}>
+                          {item.quantidade}x {item.produto?.nome ?? 'item'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                          {(item.imagensReferencia ?? []).map((url: string, idx: number) => (
+                            <img
+                              key={idx}
+                              src={url}
+                              alt={`referência ${idx + 1}`}
+                              style={{
+                                width: 96,
+                                height: 96,
+                                objectFit: 'cover',
+                                borderRadius: 12,
+                                flexShrink: 0,
+                                border: `2px solid ${BRAND.begeEsc}`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 10 }}>
+                          <div>
+                            <label
+                              style={{
+                                fontFamily: 'Space Grotesk',
+                                fontSize: 10,
+                                letterSpacing: 2,
+                                textTransform: 'uppercase',
+                                color: BRAND.marrom,
+                                opacity: 0.7,
+                                display: 'block',
+                                marginBottom: 4,
+                              }}
+                            >
+                              custo extra (R$)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={form.custo}
+                              onChange={(e) =>
+                                setComplexidadeForm({
+                                  ...complexidadeForm,
+                                  [item.id]: { ...form, custo: e.target.value },
+                                })
+                              }
+                              placeholder="0,00"
+                              style={{
+                                width: '100%',
+                                padding: '8px 10px',
+                                borderRadius: 8,
+                                border: `1.5px solid ${BRAND.begeEsc}`,
+                                fontFamily: 'Quicksand',
+                                fontSize: 14,
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              style={{
+                                fontFamily: 'Space Grotesk',
+                                fontSize: 10,
+                                letterSpacing: 2,
+                                textTransform: 'uppercase',
+                                color: BRAND.marrom,
+                                opacity: 0.7,
+                                display: 'block',
+                                marginBottom: 4,
+                              }}
+                            >
+                              notas (opcional)
+                            </label>
+                            <input
+                              value={form.notas}
+                              onChange={(e) =>
+                                setComplexidadeForm({
+                                  ...complexidadeForm,
+                                  [item.id]: { ...form, notas: e.target.value },
+                                })
+                              }
+                              placeholder="decoração elaborada, biscuit..."
+                              style={{
+                                width: '100%',
+                                padding: '8px 10px',
+                                borderRadius: 8,
+                                border: `1.5px solid ${BRAND.begeEsc}`,
+                                fontFamily: 'Quicksand',
+                                fontSize: 14,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={async () => {
+                  const avaliacoes = Object.entries(complexidadeForm)
+                    .filter(([, v]) => v.custo.trim() !== '')
+                    .map(([itemId, v]) => ({
+                      itemId,
+                      custoComplexidade: parseFloat(v.custo) || 0,
+                      complexidadeNotas: v.notas || undefined,
+                    }));
+                  if (avaliacoes.length === 0) {
+                    toast.error('Informe pelo menos um custo');
+                    return;
+                  }
+                  await enviarAvaliacao({ id: complexidadeModalPedido.id, avaliacoes });
+                  setComplexidadeModalPedido(null);
+                  setComplexidadeForm({});
+                }}
+                disabled={enviandoAvaliacao}
+                style={{
+                  marginTop: 24,
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: 999,
+                  background: BRAND.rosa,
+                  color: '#FFF',
+                  border: 'none',
+                  fontFamily: 'Quicksand',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  opacity: enviandoAvaliacao ? 0.5 : 1,
+                }}
+              >
+                {enviandoAvaliacao ? 'enviando...' : 'liberar pagamento'}
+              </motion.button>
             </motion.div>
           </motion.div>
         )}

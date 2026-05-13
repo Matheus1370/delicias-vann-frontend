@@ -11,6 +11,8 @@ const CARDS = [
   { to: '/admin/cupons', titulo: 'Cupons', descricao: 'Campanhas e promocoes', icon: '🏷️' },
   { to: '/admin/relatorios', titulo: 'Relatorios', descricao: 'Vendas e indicadores', icon: '📊' },
   { to: '/admin/regras', titulo: 'Regras', descricao: 'Combinacoes inviaveis e avisos', icon: '🛡️' },
+  { to: '/admin/inspiracoes', titulo: 'Inspiracoes', descricao: 'Galeria de bolos referencia', icon: '✨' },
+  { to: '/admin/fotos', titulo: 'Fotos', descricao: 'Galeria de fotos por produto', icon: '📸' },
 ];
 
 export default function AdminDashboard() {

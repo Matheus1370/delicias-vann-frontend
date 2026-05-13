@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { ArrowLeft, ArrowRight, Check, Sparkles, ImagePlus, X as XIcon, Users, Minus, Plus, MessageCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
@@ -69,10 +69,67 @@ function extrairKgDoLabel(label: string): number | null {
   return parseFloat(m[1].replace(',', '.'));
 }
 
+/** Lê um File, redimensiona pra maxDim, exporta como data URL JPEG (~0.8). */
+async function fileParaDataURL(file: File, maxDim: number = 800): Promise<string> {
+  const buf = await file.arrayBuffer();
+  const blob = new Blob([buf], { type: file.type });
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = url;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return url;
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', 0.8);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+/** Mapeia ocasiões do catálogo de inspiração pras 4 ocasiões internas do wizard. */
+function mapearOcasiaoInspiracao(o: string | undefined): Ocasiao | null {
+  if (!o) return null;
+  if (o === 'infantil') return 'infantil';
+  if (o === 'casamento') return 'casamento';
+  if (o === 'corporativo') return 'corporativo';
+  return 'adulto';
+}
+
 const WHATSAPP_NUMBER = (import.meta.env.VITE_WHATSAPP_NUMBER as string) ?? '5511982813152';
+
+interface PresetWizard {
+  massa?: string;
+  recheio?: string;
+  cobertura?: string;
+  topo?: string;
+  ocasiao?: string;
+  origem?: 'inspiracao';
+  inspiracaoId?: string;
+  tituloInspiracao?: string;
+}
 
 export default function WizardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const addItem = useCartStore((s) => s.addItem);
   const setOcasiaoGlobal = useCartStore((s) => s.setOcasiao);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -83,6 +140,9 @@ export default function WizardPage() {
   const [violacoes, setViolacoes] = useState<Violacao[]>([]);
   const [avisoConfirmado, setAvisoConfirmado] = useState(false);
 
+  const preset = (location.state as { preset?: PresetWizard } | null)?.preset;
+  const presetAplicadoRef = useRef(false);
+
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState<Record<string, string>>({});
   const [personalizacao, setPersonalizacao] = useState('');
@@ -92,6 +152,36 @@ export default function WizardPage() {
   const [ocasiao, setOcasiao] = useState<Ocasiao | null>(null);
   const [adicionais, setAdicionais] = useState<Record<string, number>>({});
   const [adicionaisInicializados, setAdicionaisInicializados] = useState(false);
+
+  /* Aplica preset da galeria de inspiração — best-effort: só seta opções que existem no produto */
+  useEffect(() => {
+    if (!preset || !produto || presetAplicadoRef.current) return;
+    presetAplicadoRef.current = true;
+    const opcoes = (produto as any).opcoesMontagem ?? [];
+    const labelToId: Record<string, Record<string, string>> = {};
+    for (const op of opcoes) {
+      labelToId[op.etapa] = labelToId[op.etapa] ?? {};
+      labelToId[op.etapa][slugify(op.label)] = op.id;
+    }
+    const next: Record<string, string> = {};
+    for (const etapa of ['massa', 'recheio', 'cobertura', 'topo'] as const) {
+      const tagSlug = preset[etapa];
+      if (!tagSlug) continue;
+      const tagSlugified = slugify(tagSlug);
+      let match = labelToId[etapa]?.[tagSlugified];
+      if (!match) {
+        // fallback: prefix match (ex: "morango" bate em "morango-c-chantilly")
+        const cand = Object.entries(labelToId[etapa] ?? {}).find(([k]) =>
+          k.startsWith(tagSlugified) || tagSlugified.startsWith(k),
+        );
+        if (cand) match = cand[1];
+      }
+      if (match) next[etapa] = match;
+    }
+    if (Object.keys(next).length) setSel((prev) => ({ ...prev, ...next }));
+    const oc = mapearOcasiaoInspiracao(preset.ocasiao);
+    if (oc) setOcasiao(oc);
+  }, [preset, produto]);
 
   const kgSugerido = useMemo(() => {
     if (!numeroPessoas || !ocasiao || numeroPessoas <= 0) return null;
@@ -338,6 +428,7 @@ export default function WizardPage() {
       ocasiao: ocasiao ?? undefined,
       modalidadesPermitidas: produto.modalidadesPermitidas,
       leadTimeHoras: leadTime?.leadTimeHoras ?? produto.leadTimeHoras,
+      imagensReferencia: refImages.length > 0 ? refImages.map((r) => r.preview) : undefined,
     });
 
     // Adiciona cada ADICIONAL escolhido como item separado do carrinho
@@ -454,6 +545,25 @@ export default function WizardPage() {
           <h1 className="font-display" style={{ fontSize: 'clamp(40px, 6vw, 80px)', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 0.95, margin: '16px 0 0', fontStyle: 'italic', color: BRAND.marrom }}>
             vamos criar <span style={{ color: BRAND.rosa }}>juntinhos</span>?
           </h1>
+          {preset?.tituloInspiracao && (
+            <div
+              style={{
+                marginTop: 16,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 14px',
+                borderRadius: 999,
+                background: BRAND.rosa + '22',
+                color: BRAND.rosaDeep,
+                fontFamily: 'Quicksand',
+                fontWeight: 600,
+                fontSize: 13,
+              }}
+            >
+              <Sparkles size={14} /> partindo da inspiração: {preset.tituloInspiracao}
+            </div>
+          )}
         </motion.div>
 
         {/* ─── Progress Steps ─── */}
@@ -971,6 +1081,26 @@ export default function WizardPage() {
                           📸 Envie fotos de bolos que te inspiram para que a confeiteira entenda o que você imagina.
                         </p>
 
+                        {refImages.length > 0 && (
+                          <div
+                            style={{
+                              marginBottom: 16,
+                              padding: '12px 14px',
+                              background: BRAND.ciano + '18',
+                              borderRadius: 12,
+                              border: `1px solid ${BRAND.ciano}66`,
+                              display: 'flex',
+                              gap: 10,
+                              alignItems: 'flex-start',
+                            }}
+                          >
+                            <AlertTriangle size={18} color={BRAND.marrom} style={{ flexShrink: 0, marginTop: 1 }} />
+                            <div style={{ fontFamily: 'Quicksand', fontSize: 13, color: BRAND.marrom, lineHeight: 1.5 }}>
+                              <strong>orçamento ajustado:</strong> se sua referência exigir trabalho extra (decoração elaborada, biscuit personalizado), a confeiteira te envia um orçamento revisado em até 2h <strong>antes</strong> de cobrar. seu pedido fica em <em>aguardando avaliação</em> até você confirmar.
+                            </div>
+                          </div>
+                        )}
+
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                           {/* Preview das imagens */}
                           <AnimatePresence>
@@ -1038,15 +1168,17 @@ export default function WizardPage() {
                                 accept="image/*"
                                 multiple
                                 style={{ display: 'none' }}
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                   const files = Array.from(e.target.files || []);
                                   const remaining = 5 - refImages.length;
                                   const toAdd = files.slice(0, remaining);
-                                  const newImages = toAdd.map((file) => ({
-                                    file,
-                                    preview: URL.createObjectURL(file),
-                                  }));
-                                  setRefImages((prev) => [...prev, ...newImages]);
+                                  const novas = await Promise.all(
+                                    toAdd.map(async (file) => ({
+                                      file,
+                                      preview: await fileParaDataURL(file, 800),
+                                    })),
+                                  );
+                                  setRefImages((prev) => [...prev, ...novas]);
                                   if (files.length > remaining) {
                                     toast('Máximo de 5 imagens', { icon: '📸' });
                                   }

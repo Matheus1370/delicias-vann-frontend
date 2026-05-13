@@ -20,6 +20,7 @@ const Duvidas = lazy(() => import('./pages/Duvidas'));
 const Avaliar = lazy(() => import('./pages/Avaliar'));
 const Indicar = lazy(() => import('./pages/Indicar'));
 const Empresas = lazy(() => import('./pages/Empresas'));
+const Inspiracoes = lazy(() => import('./pages/Inspiracoes'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const GoogleCallback = lazy(() => import('./pages/Auth/GoogleCallback'));
@@ -32,6 +33,8 @@ const AdminCoupons = lazy(() => import('./pages/admin/Coupons'));
 const AdminBalcao = lazy(() => import('./pages/admin/Balcao'));
 const AdminProductionSheet = lazy(() => import('./pages/admin/ProductionSheet'));
 const AdminRegras = lazy(() => import('./pages/admin/Regras'));
+const AdminInspiracoes = lazy(() => import('./pages/admin/Inspiracoes'));
+const AdminFotos = lazy(() => import('./pages/admin/Fotos'));
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -88,6 +91,7 @@ export default function App() {
             <Route path="/duvidas" element={<Duvidas />} />
             <Route path="/avaliar/:token" element={<Avaliar />} />
             <Route path="/empresas" element={<Empresas />} />
+            <Route path="/inspiracoes" element={<Inspiracoes />} />
             <Route path="/termos" element={<Legal kind="termos" />} />
             <Route path="/privacidade" element={<Legal kind="privacidade" />} />
 
@@ -209,6 +213,22 @@ export default function App() {
               element={
                 <PrivateRoute roles={GERENTE_ROLES}>
                   <AdminRegras />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/inspiracoes"
+              element={
+                <PrivateRoute roles={GERENTE_ROLES}>
+                  <AdminInspiracoes />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/fotos"
+              element={
+                <PrivateRoute roles={GERENTE_ROLES}>
+                  <AdminFotos />
                 </PrivateRoute>
               }
             />

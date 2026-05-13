@@ -18,6 +18,8 @@ export interface CartItem {
   modalidadesPermitidas?: string[];
   /** Lead time mínimo em horas (base produto + opcoesEscolhidas extra). */
   leadTimeHoras?: number;
+  /** Imagens de referência (data URLs) — quando presentes, pedido entra em AGUARDANDO_AVALIACAO_COMPLEXIDADE. */
+  imagensReferencia?: string[];
 }
 
 interface CartState {

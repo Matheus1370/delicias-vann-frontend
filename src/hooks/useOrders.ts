@@ -110,6 +110,27 @@ export function useAdicionarFotoPronto() {
   });
 }
 
+export function useAvaliarComplexidade() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      avaliacoes,
+    }: {
+      id: string;
+      avaliacoes: Array<{ itemId: string; custoComplexidade: number; complexidadeNotas?: string }>;
+    }) => api.patch(`/orders/${id}/avaliar-complexidade`, { avaliacoes }).then((r) => r.data),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin-orders'] });
+      qc.invalidateQueries({ queryKey: ['order', vars.id] });
+      toast.success('Avaliação registrada');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message ?? 'Erro ao avaliar');
+    },
+  });
+}
+
 export function useUpdateOrderStatus() {
   const qc = useQueryClient();
   return useMutation({

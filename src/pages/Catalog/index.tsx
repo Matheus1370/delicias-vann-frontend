@@ -26,6 +26,44 @@ const categoryColor = (slug: string): string => {
   return map[slug] ?? BRAND.rosa;
 };
 
+interface FotoProduto {
+  id: string;
+  url: string;
+  tipo: 'PRINCIPAL' | 'CORTADO' | 'DETALHE';
+  ordem: number;
+}
+
+function carouselNavStyle(side: 'left' | 'right'): React.CSSProperties {
+  return {
+    position: 'absolute',
+    top: '50%',
+    [side]: 12,
+    transform: 'translateY(-50%)',
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    border: 'none',
+    background: 'rgba(246, 237, 231, 0.9)',
+    color: BRAND.marrom,
+    fontSize: 24,
+    cursor: 'pointer',
+    fontFamily: 'Quicksand',
+    fontWeight: 700,
+  } as React.CSSProperties;
+}
+
+/** Devolve { principal, cortado, todas } a partir de fotos[] (com fallback pra imagemUrl). */
+function escolherFotos(p: any): { principal: string | null; cortado: string | null; todas: FotoProduto[] } {
+  const fotos: FotoProduto[] = (p.fotos ?? []) as FotoProduto[];
+  const principal = fotos.find((f) => f.tipo === 'PRINCIPAL') ?? fotos[0];
+  const cortado = fotos.find((f) => f.tipo === 'CORTADO') ?? null;
+  return {
+    principal: principal?.url ?? p.imagemUrl ?? null,
+    cortado: cortado?.url ?? null,
+    todas: fotos,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
@@ -397,6 +435,8 @@ interface CardProps {
 function CatalogCard({ p, i, onOpen, onAdd, inCart }: CardProps) {
   const [hover, setHover] = useState(false);
   const accent = categoryColor(p.categoria?.slug ?? '');
+  const fotosInfo = escolherFotos(p);
+  const fotoExibida = hover && fotosInfo.cortado ? fotosInfo.cortado : fotosInfo.principal;
 
   return (
     <motion.div
@@ -429,18 +469,45 @@ function CatalogCard({ p, i, onOpen, onAdd, inCart }: CardProps) {
             background: accent + '15',
           }}
         >
-          {p.imagemUrl ? (
+          {fotoExibida ? (
             <img
-              src={p.imagemUrl}
+              src={fotoExibida}
               alt={p.nome}
               loading="lazy"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'transform 600ms ease, opacity 300ms',
+                transform: hover ? 'scale(1.06)' : 'scale(1)',
+              }}
             />
           ) : (
             <ProductPlaceholder
               label={p.categoria?.nome ?? p.tipo}
               accent={accent}
             />
+          )}
+
+          {fotosInfo.cortado && (
+            <span
+              style={{
+                position: 'absolute',
+                bottom: 12,
+                left: 12,
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'rgba(66, 39, 22, 0.85)',
+                color: BRAND.bege,
+                fontFamily: 'Space Grotesk',
+                fontSize: 10,
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+                opacity: hover ? 1 : 0.85,
+              }}
+            >
+              {hover ? 'cortado' : 'passe o mouse'}
+            </span>
           )}
 
           {/* TOP badge (popular / montavel) */}
@@ -618,6 +685,17 @@ function ProductModal({ p, onClose, onAdd }: ModalProps) {
   const [qty, setQty] = useState(1);
   const accent = categoryColor(p.categoria?.slug ?? '');
   const unitPrice = Number(p.precoVenda);
+  const fotosInfo = escolherFotos(p);
+  const galeria = useMemo(() => {
+    const urls: string[] = [];
+    if (fotosInfo.principal) urls.push(fotosInfo.principal);
+    for (const f of fotosInfo.todas) {
+      if (f.url && !urls.includes(f.url)) urls.push(f.url);
+    }
+    return urls;
+  }, [p.id]);
+  const [fotoIdx, setFotoIdx] = useState(0);
+  const fotoAtual = galeria[fotoIdx] ?? null;
 
   return (
     <motion.div
@@ -656,14 +734,62 @@ function ProductModal({ p, onClose, onAdd }: ModalProps) {
       >
         {/* Left: image */}
         <div style={{ background: accent + '20', position: 'relative', minHeight: 400 }}>
-          {p.imagemUrl ? (
+          {fotoAtual ? (
             <img
-              src={p.imagemUrl}
+              src={fotoAtual}
               alt={p.nome}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
             <ProductPlaceholder label={p.categoria?.nome ?? ''} accent={accent} />
+          )}
+          {galeria.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setFotoIdx((i) => (i - 1 + galeria.length) % galeria.length)}
+                aria-label="Foto anterior"
+                style={carouselNavStyle('left')}
+              >
+                &#x2039;
+              </button>
+              <button
+                type="button"
+                onClick={() => setFotoIdx((i) => (i + 1) % galeria.length)}
+                aria-label="Próxima foto"
+                style={carouselNavStyle('right')}
+              >
+                &#x203A;
+              </button>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                {galeria.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    aria-label={`Foto ${idx + 1}`}
+                    onClick={() => setFotoIdx(idx)}
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      border: 'none',
+                      background: idx === fotoIdx ? BRAND.bege : 'rgba(246, 237, 231, 0.5)',
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
+              </div>
+            </>
           )}
           <motion.button
             onClick={onClose}

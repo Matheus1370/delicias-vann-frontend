@@ -134,6 +134,7 @@ function Header() {
     { to: '/', label: 'início' },
     { to: '/cardapio', label: 'cardápio' },
     { to: '/montar', label: 'montar bolo' },
+    { to: '/inspiracoes', label: 'inspirações' },
     { to: '/duvidas', label: 'dúvidas' },
   ];
 
@@ -630,6 +631,7 @@ function Footer() {
         { to: '/', label: 'início' },
         { to: '/cardapio', label: 'cardápio' },
         { to: '/montar', label: 'montar bolo' },
+        { to: '/inspiracoes', label: 'inspirações' },
         { to: '/duvidas', label: 'dúvidas frequentes' },
       ],
     },
